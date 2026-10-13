@@ -209,6 +209,62 @@ def _load_envelope(path: str | Path | None) -> tuple[dict, str]:
     return normalized, str(source)
 
 
+# Signal-specific hypotheses keep the template honest: they are phrased as questions, never as facts.
+_TEMPLATE_HOOKS = {
+    "ko": {
+        "job_posting": ("공개된 채용 공고 「{title}」 내용을 보았습니다.",
+                        "새로 합류하는 분이 빠르게 자리 잡도록 업무 기반을 정비하는 시점이 아닐까 싶었습니다."),
+        "funding_signal": ("「{title}」 소식을 보았습니다. 축하드립니다.",
+                           "투자 이후 조직과 사업을 키우는 과정에서 새로 검토하시는 일이 있을 것 같았습니다."),
+        "procurement": ("공고 「{title}」 내용을 보았습니다.",
+                        "공고에 담긴 과제를 준비하시는 데 참고가 될 수 있을지 여쭙고 싶었습니다."),
+        "overseas_partner": ("「{title}」 관련 정보를 보았습니다.",
+                             "한국 쪽 협력처를 찾고 계신다면 이야기를 나눠볼 만하다고 생각했습니다."),
+    },
+    "en": {
+        "job_posting": ("I saw your opening for {title}.",
+                        "Growing the team is often when the groundwork around that role gets a second look."),
+        "funding_signal": ("Congratulations on the news: {title}.",
+                           "After a raise, teams often revisit how they scale the work ahead."),
+        "procurement": ("I saw the notice for {title}.",
+                        "I wondered whether a short conversation could help as you prepare for it."),
+        "overseas_partner": ("I came across {title}.",
+                             "If you are looking for partners in Korea, it may be worth a short conversation."),
+    },
+}
+
+
+def _josa(word: str, with_final: str, without_final: str) -> str:
+    last = word.rstrip()[-1:] if word.strip() else ""
+    if "가" <= last <= "힣":
+        return word + (with_final if (ord(last) - 0xAC00) % 28 else without_final)
+    return f"{word}{with_final}({without_final})"
+
+
+def _template_draft(record: dict, product: str, customer: str, language: str) -> str:
+    lang = "en" if language.casefold().startswith("en") else "ko"
+    hooks = _TEMPLATE_HOOKS[lang]
+    opener, hypothesis = hooks.get(record["record_type"], hooks["procurement"])
+    title = record["title"]
+    company = record.get("company") or record.get("company_candidate") or ""
+    if lang == "en":
+        greeting = f"Hello {company} team," if company else "Hello,"
+        return (f"Subject: Quick question about {title}\n\n{greeting}\n\n"
+                f"{opener.format(title=title)} {hypothesis}\n\n"
+                f"We offer {product}, built for teams like {customer}. If that sounds relevant, "
+                "would a 15-minute call next week be useful? If not, a quick no is perfectly fine.\n\n"
+                "Thank you.")
+    greeting = f"안녕하세요, {company} 담당자님." if company else "안녕하세요."
+    subject = f"{company} {title} 관련 문의" if company else f"{title} 관련 문의"
+    return (f"제목: {subject}\n\n{greeting}\n\n"
+            f"{opener.format(title=title)} {hypothesis}\n\n"
+            f"저희는 {_josa(product, '을', '를')} 제공하고 있으며, "
+            f"{_josa(customer, '과', '와')} 비슷한 상황의 팀을 돕고 있습니다. "
+            "혹시 관련이 있다면 다음 주 중 15분 정도 짧게 이야기 나눠볼 수 있을까요? "
+            "지금은 해당되지 않는다면 편하게 말씀해 주셔도 괜찮습니다.\n\n"
+            "감사합니다.")
+
+
 def _normalize_record(raw: object, envelope_source: str) -> dict:
     if not isinstance(raw, dict):
         raise ValueError("각 record는 객체여야 합니다.")
@@ -408,13 +464,11 @@ def run_flow(vault: str | Path, input_path: str | Path | None = None, *,
                 product = _safe_text(profile.get("product"), "profile.product", 1000) or "저희 제안"
                 customer = _safe_text(profile.get("customer"), "profile.customer", 1000) or "해당 조직"
                 language = _safe_text(profile.get("draft_language"), "profile.draft_language", 40) or "ko"
-                draft_body = f"""> 합성 규칙 기반 초안 템플릿입니다. 실제 AI 생성 결과가 아니며 자동 발송되지 않습니다. 언어: `{language}`
+                draft_body = f"""> 규칙 기반 초안 템플릿입니다. 실제 AI 생성 결과가 아니며 자동 발송되지 않습니다. 언어: `{language}`
 
-안녕하세요. `{record['title']}` 관련 공개 정보를 확인했습니다.
+{_template_draft(record, product, customer, language)}
 
-저희 `{product}`가 `{customer}`의 현재 과제와 관련이 있는지 확인하고 싶습니다. 간단한 소개 자료를 보내드려도 괜찮을까요?
-
-검토 전 확인: 회사 동일성, 원문 최신성, 제품 적합성, 실제 수신 대상, 과장 표현 여부."""
+> 검토 전 확인: 회사 동일성, 원문 최신성, 가설이 실제 상황과 맞는지, 실제 수신 대상, 과장 표현 여부."""
             draft_hash = hashlib.sha256(draft_body.encode("utf-8")).hexdigest()
             _machine_note(draft_path, f"""# Draft template — {record['company']}
 

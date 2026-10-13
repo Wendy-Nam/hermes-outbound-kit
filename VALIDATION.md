@@ -2,8 +2,10 @@
 
 ## Executed in the Linux development environment
 
-- Latest completed unittest: **267 passed** with `python3 -m unittest discover -s tests -q`.
-  Reference-integration and test-bot changes are included; this count is not live-device evidence.
+- Latest completed unittest: **267 passed** with `python3 -m unittest discover -s tests -q` in the
+  development workspace. The `tests/` directory is not published in this repository, so this count
+  cannot be reproduced from a clone; `python3 local_smoke.py` and `python3 start.py --offline` are the
+  reproducible checks here. This count is not live-device evidence.
   Fixture/mock tests are not live installation evidence.
 - Configuration contract covers desktop/server × four channels × 16 service subsets = 128 combinations.
 - Three headless Chromium flows: both channels, no channel, remote SSH; downloaded configuration passed

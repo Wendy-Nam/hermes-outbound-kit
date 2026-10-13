@@ -90,10 +90,9 @@ Linux Docker Engine, macOS/Windows Docker Desktop(Linux containers)을 지원하
 ## 워크숍 자료
 
 - [실행 가능한 소스→볼트 데모](docs/DEMO.md)
-- [기존 kit 입력 누락 감사](docs/WIZARD-FIELD-AUDIT.md)
 - [서비스별 준비](docs/SERVICES.md), [옵시디언](docs/OBSIDIAN.md)
 
-검증 상태는 [VALIDATION.md](VALIDATION.md), 구현 범위는 [PLAN.md](PLAN.md)를 보세요.
+검증 상태와 아직 실기기에서 확인하지 않은 범위는 [VALIDATION.md](VALIDATION.md)를 보세요.
 
 - [전체 레퍼런스 통합 감사](docs/REFERENCE-INTEGRATION.md)
 - [격리 로컬 테스트와 결과 품질 평가](docs/RESULT-QUALITY.md)
