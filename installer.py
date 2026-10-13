@@ -407,7 +407,8 @@ def main(argv=None):
         print(json.dumps({'status':'sample_ready' if args.offline else 'setup_steps_completed',
                           'home':str(home),'output':str(output),'vault':str(vault),
                           'results':results,'automatic_send':False,
-                          'next_action':'결과 폴더에서 근거와 초안을 검토하세요.'},
+                          'obsidian':'Obsidian에서 "폴더를 볼트로 열기"로 이 폴더를 여세요: '+str(vault),
+                          'next_action':'볼트의 Dashboard.md와 GTM/Pipeline.md에서 근거·점수·초안을 검토하세요.'},
                          ensure_ascii=False,indent=2))
         return 0
     except KeyboardInterrupt:

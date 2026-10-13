@@ -304,7 +304,7 @@ def collect_config(input_fn: InputFn = input, output_fn: OutputFn = print) -> di
     vault_path = ""
     vault_existing_approved = False
     if vault_mode != "none":
-        default_vault = "~/hermes-outbound-vault" if vault_mode == "new" else ""
+        default_vault = "~/Documents/Hermes-GTM" if vault_mode == "new" else ""
         vault_path = q.text("Vault 경로", default=default_vault, required=True)
         if vault_mode == "existing":
             vault_existing_approved = q.yes_no(

@@ -12,6 +12,13 @@ import json
 import os
 import sys
 
+# 볼트 기록은 account-crm 스킬의 공용 모듈을 쓴다(같은 skills 폴더에 함께 설치됨).
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "account-crm", "scripts"))
+try:
+    import gtm_vault  # noqa: E402
+except ImportError:
+    gtm_vault = None
+
 DEFAULT_SENDER = {
     "name": "[이름]",
     "company": "[회사]",
@@ -73,6 +80,8 @@ def main():
     ap.add_argument("--include-research", action="store_true",
                     help="'리서치 필요' 계정도 초안 생성(기본은 지금 콜·콜 예약·너처링만)")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--vault", help="Obsidian 볼트 경로(기본: 키트 설정의 볼트). GTM/Drafts에 초안 노트 저장")
+    ap.add_argument("--no-vault", action="store_true", help="볼트에 저장하지 않고 화면에만 출력")
     a = ap.parse_args()
     profile = _load(a.profile)
     product = profile.get("product") or "[제품 한 줄 설명]"
@@ -87,6 +96,14 @@ def main():
     drafts = [{"company": r.get("company"), "action": r.get("action"),
                "evidence": r.get("evidence") or {}, "draft": draft(r, product, customer, sender)}
               for r in targets]
+    vault = None if a.no_vault or not gtm_vault else gtm_vault.resolve_vault(a.vault)
+    saved = []
+    if vault:
+        for d in drafts:
+            path = gtm_vault.write_draft(vault, d["company"], d["action"], d["draft"], d["evidence"])
+            if path:
+                saved.append(str(path))
+                d["note"] = str(path)
     if a.json:
         print(json.dumps(drafts, ensure_ascii=False, indent=2))
         return 0
@@ -97,6 +114,8 @@ def main():
         for key, url in d["evidence"].items():
             print(f"  근거({key}): {url}")
         print()
+    if saved:
+        print(f"Obsidian 볼트에 초안 노트 {len(saved)}건 저장: {vault / 'GTM' / 'Drafts'}")
     if not drafts:
         print("대상 계정이 없습니다. '리서치 필요' 계정은 prospect-research로 적합도 근거를 채운 뒤 다시 채점하세요.")
     if "[" in product or "[" in sender["name"]:

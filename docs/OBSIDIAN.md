@@ -9,13 +9,13 @@
 macOS/Linux:
 
 ```sh
-python3 vault_flow.py init --vault "$HOME/hermes-outbound-vault"
+python3 vault_flow.py init --vault "$HOME/Documents/Hermes-GTM"
 ```
 
 Windows PowerShell:
 
 ```powershell
-py -3 vault_flow.py init --vault "$HOME\hermes-outbound-vault"
+py -3 vault_flow.py init --vault "$HOME\Documents\Hermes-GTM"
 ```
 
 이미 파일이 있는 디렉터리를 사용할 수 있지만, 러너는 자신의 marker가 없는 동일 경로 파일을
@@ -24,8 +24,8 @@ py -3 vault_flow.py init --vault "$HOME\hermes-outbound-vault"
 ## 2. 합성 fixture로 흐름 확인
 
 ```sh
-python3 vault_flow.py run --vault "$HOME/hermes-outbound-vault"
-python3 vault_flow.py status --vault "$HOME/hermes-outbound-vault"
+python3 vault_flow.py run --vault "$HOME/Documents/Hermes-GTM"
+python3 vault_flow.py status --vault "$HOME/Documents/Hermes-GTM"
 ```
 
 `--input`을 생략하면 `pack/vault/seed/normalized-records.json`의 합성 데이터만 사용합니다.
@@ -35,7 +35,7 @@ python3 vault_flow.py status --vault "$HOME/hermes-outbound-vault"
 
 ```sh
 python3 vault_flow.py run \
-  --vault "$HOME/hermes-outbound-vault" \
+  --vault "$HOME/Documents/Hermes-GTM" \
   --input output/job-postings.json
 ```
 
@@ -117,3 +117,10 @@ approved_draft_hash: "Draft 노트의 draft_content_hash"
 - 생성 노트의 `user-notes` 블록 안에 쓴 내용은 재실행해도 보존됩니다.
 - 동일한 입력은 같은 run/account/evidence ID를 사용하므로 중복 노트를 만들지 않습니다.
 - marker가 사라졌거나 경로가 파일/심볼릭 링크로 바뀌면 안전하게 중단합니다.
+
+## GTM 파이프라인 노트
+
+`account-crm`, `signal-outreach-draft` 스킬은 같은 볼트의 `GTM/` 폴더에 계정·초안·파이프라인 노트를 씁니다.
+계정 노트의 `status` 속성과 `## 사람 메모`, 초안 노트의 `review` 속성은 사람이 Obsidian에서 바꾸며,
+다시 채점해도 유지됩니다. 자세한 위치는 [포함된 스킬](SKILLS.md)을 보세요.
+

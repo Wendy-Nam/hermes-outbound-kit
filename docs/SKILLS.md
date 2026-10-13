@@ -23,6 +23,19 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 | 검수 | `gtm-list-qa`, `gtm-copy-qa` | — | |
 | 추적 | `account-crm` | `account_crm.py` | 발굴→접촉→응답→미팅→제안→계약, 사람이 바꾼 상태·메모는 덮지 않음 |
 
+## Obsidian 볼트에 남는 것
+
+키트 설정의 볼트(기본 새 볼트 `~/Documents/Hermes-GTM`)가 GTM 기록의 단일 장소입니다. Obsidian에서
+"폴더를 볼트로 열기"로 엽니다.
+
+| 위치 | 만드는 것 | 사람이 바꾸는 것 |
+|---|---|---|
+| `Dashboard.md`, `Accounts/ Evidence/ Scores/ Drafts/ Review/ Runs/` | 키트 기본 흐름(`workflow.py`, 예약 실행) | Review 노트의 승인 |
+| `GTM/Accounts/<회사>.md`, `GTM/Pipeline.md` | `account-crm` | `status` 속성, `## 사람 메모` |
+| `GTM/Drafts/<회사>.md` | `signal-outreach-draft` | `review` 속성, `## 사람 메모` |
+
+자동 갱신은 표식(`<!-- hermes-outbound:... -->`)이 있는 노트의 기계 영역만 바꿉니다. 사람이 만든 같은 이름 노트는 건너뜁니다.
+
 ## 사용자 설정 파일 (스킬 폴더 밖에 둡니다)
 
 스킬 폴더 파일을 직접 고치면 키트를 다시 설치할 때 "기존 변경 보존"으로 멈춥니다. 개인 값은 Hermes home에 둡니다.
@@ -31,7 +44,7 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 |---|---|---|
 | `$HERMES_HOME/sales-profile.json` | `outbound-scoring` 채점 기준 | `skills/outbound-scoring/sales-profile.json` 복사 후 업종·기술스택 밴드 수정 |
 | `$HERMES_HOME/sender-profile.json` | `signal-outreach-draft` 발신자 정보 | `skills/signal-outreach-draft/profile.example.json` 복사 후 작성 |
-| `$HERMES_HOME/gtm/accounts.json` | `account-crm` 장부 | 처음 `--ingest` 때 자동 생성 |
+| `$HERMES_HOME/gtm/accounts.json` | `account-crm` 장부(볼트가 없을 때만) | 처음 `--ingest` 때 자동 생성 |
 
 이 파일들에는 연락처·영업 데이터가 들어가므로 공유하거나 커밋하지 않습니다.
 

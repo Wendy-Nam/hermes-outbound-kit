@@ -14,14 +14,17 @@ import json
 import os
 import re
 import sys
+from datetime import date
 
-# 기본 장부: $HERMES_HOME/gtm/accounts.json (스킬 폴더 밖이라 업데이트에 덮이지 않음).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gtm_vault  # noqa: E402
+
+# 볼트가 있으면 Obsidian 노트(GTM/Accounts)가 장부다. 볼트가 없을 때만 JSON 장부를 쓴다:
+# $HERMES_HOME/gtm/accounts.json (스킬 폴더 밖이라 업데이트에 덮이지 않음).
 _HOME = os.environ.get("HERMES_HOME", "")
 LEDGER = os.environ.get("OUTBOUND_CRM_LEDGER") or (
     os.path.join(_HOME, "gtm", "accounts.json") if _HOME else "accounts.json")
-if os.path.dirname(LEDGER):
-    os.makedirs(os.path.dirname(LEDGER), exist_ok=True)
-STAGES = ["발굴", "접촉", "응답", "미팅", "제안", "계약", "보류", "실패"]
+STAGES = gtm_vault.STAGES
 
 
 def _key(name):
@@ -39,6 +42,8 @@ def _load():
 
 
 def _save(d):
+    if os.path.dirname(LEDGER):
+        os.makedirs(os.path.dirname(LEDGER), exist_ok=True)
     tmp = f"{LEDGER}.{os.getpid()}.tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(d, f, ensure_ascii=False, indent=2)
@@ -88,14 +93,24 @@ def main():
     ap.add_argument("--note", help='"회사=메모"')
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--stage", help="--list 필터")
+    ap.add_argument("--vault", help="Obsidian 볼트 경로(기본: 키트 설정의 볼트)")
+    ap.add_argument("--no-vault", action="store_true", help="볼트 대신 JSON 장부 사용")
     a = ap.parse_args()
+    global _load, _save
+    vault = None if a.no_vault else gtm_vault.resolve_vault(a.vault)
+    if vault:
+        backend = gtm_vault.VaultLedger(vault)
+        _load, _save = backend.load, backend.save
+        where = f"Obsidian 볼트 {vault / 'GTM'}"
+    else:
+        where = f"JSON 장부 {LEDGER} (볼트 미설정)"
     led = _load()
 
     if a.ingest:
         rows = json.load(sys.stdin)
         add, upd = ingest(led, rows)
         _save(led)
-        print(f"흡수: 신규 {add} · 갱신 {upd} (총 {len(led)})")
+        print(f"흡수: 신규 {add} · 갱신 {upd} (총 {len(led)}) → {where}")
         return 0
 
     if a.status:
@@ -117,7 +132,10 @@ def main():
         k = _find(led, name)
         if not k:
             sys.exit(f"'{name}' 계정 없음")
-        led[k].setdefault("notes", []).append(txt.strip())
+        entry = f"{date.today().isoformat()} {txt.strip()}"
+        led[k].setdefault("notes", []).append(entry)
+        if led[k].get("_notes_raw") is not None:
+            led[k]["_notes_raw"] = (led[k]["_notes_raw"].rstrip("\n") + "\n- " + entry).lstrip("\n")
         _save(led)
         print(f"{led[k]['company']} 메모 추가")
         return 0
@@ -136,6 +154,7 @@ def main():
     from collections import Counter
     c = Counter(r.get("status") for r in led.values())
     print("\n파이프라인:", " · ".join(f"{s} {c.get(s,0)}" for s in STAGES))
+    print(f"저장 위치: {where}")
     return 0
 
 

@@ -29,6 +29,8 @@ python3 ${HERMES_SKILL_DIR}/scripts/signal_outreach.py --include-research < scor
 - 입력: `account_score.py --jsonl --json-out` 결과.
 - 제품·고객: 키트 설치 때 만든 `$HERMES_HOME/outbound-profile.json`의 `product`, `customer`.
 - 근거 URL을 초안 아래에 함께 출력한다. 발송 전에 사람이 열어서 확인한다.
+- 볼트가 설정되어 있으면 초안을 `GTM/Drafts/<회사>.md` 노트로도 저장하고 계정 노트와 서로 링크한다.
+  노트의 `review` 속성(pending → approved/rejected)과 사람 메모는 다시 만들어도 유지된다. `--no-vault`면 화면에만 출력.
 
 ## 원칙
 - 신호는 수집된 값만 인용한다. 금액·직무를 지어내지 않는다.

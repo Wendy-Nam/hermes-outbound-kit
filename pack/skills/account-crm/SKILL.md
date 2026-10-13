@@ -30,5 +30,11 @@ python3 $C --list                                 # 파이프라인 보기
 python3 $C --list --stage 미팅                     # 단계 필터
 ```
 
-장부 기본 위치는 `$HERMES_HOME/gtm/accounts.json`이고 `OUTBOUND_CRM_LEDGER`로 바꿀 수 있다.
+## 장부는 Obsidian 볼트
+키트 설정에 볼트가 있으면 계정마다 `GTM/Accounts/<회사>.md` 노트가 장부다. `GTM/Pipeline.md`에 단계별 목록이 생긴다.
+- 사람은 Obsidian에서 노트의 `status` 속성을 바꾸고 `## 사람 메모` 아래에 자유롭게 메모한다. 다시 채점해도 둘 다 유지된다.
+- 판정·점수·신호·근거 섹션은 채점 때마다 자동 갱신된다.
+- 볼트 경로는 `--vault` → `OUTBOUND_VAULT` → 키트 설정의 `vault_path` → `$HERMES_HOME/vault` 순서로 찾는다.
+- 볼트가 없을 때만 `$HERMES_HOME/gtm/accounts.json`(또는 `OUTBOUND_CRM_LEDGER`)을 쓴다. `--no-vault`로 강제할 수 있다.
+
 영업 데이터라 공유·커밋하지 않는다.

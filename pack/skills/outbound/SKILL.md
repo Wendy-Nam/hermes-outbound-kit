@@ -42,3 +42,7 @@ Pick the narrower skill when the request matches it; all of them keep the same r
 | Draft | `evidence-to-outreach`, `signal-outreach-draft`, `linkedin-cold-messaging`, then `korean-humanizer` for tone |
 | QA | `gtm-list-qa`, `gtm-copy-qa` |
 | Track | `account-crm` (human-edited status and notes are never overwritten) |
+
+The Obsidian vault is the single record: `account-crm` and `signal-outreach-draft` write `GTM/Accounts`,
+`GTM/Drafts` and `GTM/Pipeline.md` in the configured vault; the kit workflow writes `Accounts/Evidence/Scores/Drafts/Review`.
+Tell the user which note changed instead of pasting long results into chat.
