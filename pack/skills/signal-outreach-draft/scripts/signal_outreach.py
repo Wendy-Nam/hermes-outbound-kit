@@ -34,6 +34,11 @@ def _josa(word, with_final, without_final):
     return f"{word}{with_final}({without_final})"
 
 
+def _key(name):
+    import re
+    return re.sub(r"[^가-힣a-z0-9]", "", (name or "").lower())
+
+
 def _load(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -82,6 +87,10 @@ def main():
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--vault", help="Obsidian 볼트 경로(기본: 키트 설정의 볼트). GTM/Drafts에 초안 노트 저장")
     ap.add_argument("--no-vault", action="store_true", help="볼트에 저장하지 않고 화면에만 출력")
+    ap.add_argument("--include-contacted", action="store_true",
+                    help="CRM 상태가 '발굴'이 아닌 계정(이미 접촉·진행·보류·실패)도 초안 생성")
+    ap.add_argument("--do-not-contact", default=os.path.join(home, "do-not-contact.txt") if home else "do-not-contact.txt",
+                    help="연락 금지 회사 목록(한 줄에 한 회사)")
     a = ap.parse_args()
     profile = _load(a.profile)
     product = profile.get("product") or "[제품 한 줄 설명]"
@@ -92,11 +101,33 @@ def main():
     except ValueError:
         sys.exit("stdin에 account_score.py --jsonl --json-out 출력을 파이프하세요")
     allowed = {"지금 콜", "콜 예약", "너처링"} | ({"리서치 필요"} if a.include_research else set())
-    targets = [r for r in rows if r.get("action") in allowed][:a.top]
+    blocked = set()
+    try:
+        with open(a.do_not_contact, encoding="utf-8") as fh:
+            blocked = {_key(l) for l in fh if l.strip() and not l.startswith("#")}
+    except FileNotFoundError:
+        pass
+    vault = None if a.no_vault or not gtm_vault else gtm_vault.resolve_vault(a.vault)
+    status = {}
+    if vault and not a.include_contacted:
+        status = {k: v.get("status") for k, v in gtm_vault.VaultLedger(vault).load().items()}
+    skipped = []
+    targets = []
+    for r in rows:
+        k = _key(r.get("company"))
+        if r.get("action") not in allowed:
+            continue
+        if k in blocked:
+            skipped.append(f"{r.get('company')}(연락 금지)")
+            continue
+        if status.get(k) not in (None, "발굴"):
+            skipped.append(f"{r.get('company')}({status[k]})")
+            continue
+        targets.append(r)
+    targets = targets[:a.top]
     drafts = [{"company": r.get("company"), "action": r.get("action"),
                "evidence": r.get("evidence") or {}, "draft": draft(r, product, customer, sender)}
               for r in targets]
-    vault = None if a.no_vault or not gtm_vault else gtm_vault.resolve_vault(a.vault)
     saved = []
     if vault:
         for d in drafts:
@@ -114,6 +145,8 @@ def main():
         for key, url in d["evidence"].items():
             print(f"  근거({key}): {url}")
         print()
+    if skipped:
+        print("제외: " + ", ".join(skipped))
     if saved:
         print(f"Obsidian 볼트에 초안 노트 {len(saved)}건 저장: {vault / 'GTM' / 'Drafts'}")
     if not drafts:

@@ -98,7 +98,7 @@ python3 ${HERMES_SKILL_DIR}/scripts/account_score.py --in accounts.jsonl --jsonl
 - **점수를 손으로 조정하지 말 것.** 기준이 틀렸으면 `sales-profile.json`을 고친다 — 그래야 다음 계정에도 같은 기준이 간다.
 - **빈칸을 추측으로 채우지 말 것.** 그 순간 스코어가 거짓말이 된다.
 - `sales-profile.json`의 ICP 값은 **예시값**이다. 담당 제품·고객군으로 교체하고 시작할 것.
-  스킬 폴더의 파일을 직접 고치지 말고 `$HERMES_HOME/sales-profile.json`으로 복사해서 고치면 업데이트 때 덮이지 않는다.
+  키트 설치 때 답변으로 `$HERMES_HOME/sales-profile.json`이 자동 생성된다. 그 파일을 고치면 업데이트 때 덮이지 않는다.
   (다른 위치는 환경변수 `OUTBOUND_SALES_PROFILE`로 지정.)
 - 신선도 없는 임원 발언은 감쇠가 안 걸려 과대평가된다. `days_ago`를 꼭 넣을 것.
 - 같은 회사를 여러 번 채점하면 최신 신호로 덮어쓰되, 이전 근거 URL은 남긴다.

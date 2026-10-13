@@ -42,7 +42,8 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 
 | 파일 | 용도 | 시작 방법 |
 |---|---|---|
-| `$HERMES_HOME/sales-profile.json` | `outbound-scoring` 채점 기준 | `skills/outbound-scoring/sales-profile.json` 복사 후 업종·기술스택 밴드 수정 |
+| `$HERMES_HOME/sales-profile.json` | `outbound-scoring` 채점 기준 | 설치 때 답변(키워드·고객·채용 키워드)으로 자동 생성. 업종·기술스택·직무 밴드를 다듬는다. 재설치해도 덮지 않음 |
+| `$HERMES_HOME/do-not-contact.txt` | `signal-outreach-draft` 연락 금지 회사 | 한 줄에 회사 하나. 이미 접촉·진행 중인 계정(CRM 상태가 발굴이 아님)도 자동 제외 |
 | `$HERMES_HOME/sender-profile.json` | `signal-outreach-draft` 발신자 정보 | `skills/signal-outreach-draft/profile.example.json` 복사 후 작성 |
 | `$HERMES_HOME/gtm/accounts.json` | `account-crm` 장부(볼트가 없을 때만) | 처음 `--ingest` 때 자동 생성 |
 

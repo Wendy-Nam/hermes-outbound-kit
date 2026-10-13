@@ -14,7 +14,7 @@ import json
 import os
 import re
 import tempfile
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 MARK = "<!-- hermes-outbound:gtm:v1 -->"
@@ -122,6 +122,7 @@ class VaultLedger:
             meta = {"company": rec["company"], "status": rec.get("status") or "발굴",
                     "action": rec.get("action"), "fit": rec.get("fit"), "urgency": rec.get("urgency"),
                     "contacted_at": rec.get("contacted_at") or "",
+                    "discovered": rec.get("discovered") or date.today().isoformat(),
                     "updated": date.today().isoformat(), "tags": ["gtm-account"]}
             notes = rec.get("_notes_raw")
             if notes is None:
@@ -136,6 +137,12 @@ class VaultLedger:
             return
         lines = ["# GTM 파이프라인", "",
                  "상태는 각 계정 노트의 `status` 속성을 Obsidian에서 바꾸면 됩니다. 다시 채점해도 유지됩니다.", ""]
+        recent = sorted((r for r in led.values() if str(r.get("discovered") or date.today().isoformat())
+                         >= (date.today() - timedelta(days=7)).isoformat()), key=lambda r: r["company"])
+        if recent:
+            lines.append(f"## 최근 7일 새로 발굴 ({len(recent)})")
+            lines += [f"- [[GTM/Accounts/{slug(r['company'])}|{r['company']}]] · {r.get('action') or ''}" for r in recent]
+            lines.append("")
         for stage in STAGES:
             recs = [r for r in led.values() if (r.get("status") or "발굴") == stage]
             if not recs:
