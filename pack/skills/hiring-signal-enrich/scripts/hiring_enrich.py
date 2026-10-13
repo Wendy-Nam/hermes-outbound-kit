@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""startup-enrich — funded-startup-search 출력에 '채용 긴급도' 신호를 붙인다.
+"""hiring-signal-enrich — 계정 후보 목록에 원티드 채용 신호를 붙인다.
 
-입력: funded_search.py --json (stdin, 정규화 리스트).
-보강: 원티드 회사명 질의 → 열린 포지션 수(=채용 긴급도)·직무목록.
+입력: funding_search.py --json 등 {company, ...} 리스트(stdin).
+보강: 원티드 회사명 질의 → 공고 수·직무목록.
 
 설계 원칙(키트 공통): **스크래퍼는 구조화 데이터만.** 대표·정확 회사명·투자금액 판별처럼
 지저분한 한국어 산문에서 뽑는 건 regex가 아니라 **Hermes LLM(기사 본문 판독)의 몫**이다.
@@ -64,7 +64,7 @@ def enrich(rec, delay=1.0):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="funded-startup-search 출력에 원티드 채용현황 보강")
+    ap = argparse.ArgumentParser(description="계정 후보 목록에 원티드 채용현황 보강")
     ap.add_argument("--limit", type=int, default=8, help="보강할 회사 수(요청 절약)")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--delay", type=float, default=1.0)
@@ -72,7 +72,7 @@ def main():
     try:
         rows = json.load(sys.stdin)
     except Exception:
-        sys.exit("stdin에 funded_search.py --json 출력을 파이프하세요")
+        sys.exit("stdin에 funding_search.py --json 출력을 파이프하세요")
     out = [enrich(r, a.delay) for r in rows[:a.limit]]
     if a.json:
         print(json.dumps(out, ensure_ascii=False, indent=2))
@@ -83,7 +83,7 @@ def main():
         opn = "?" if opn is None else str(opn)
         roles = ", ".join(r.get("roles", [])[:3])
         print(f"{r['company'][:20]:<22}{r.get('round',''):<9}{r.get('amount',''):<10}{opn:<9}{roles}")
-    print("\n원티드공고: ?=미확인 · 0=원티드 미등록(시드단계 흔함) · N=채용중(=BD 긴급도 신호)")
+    print("\n원티드공고: ?=미확인 · 0=원티드 미등록(시드단계 흔함) · N=채용중(긴급도 신호 후보)")
     return 0
 
 

@@ -68,7 +68,7 @@ cells. A 128-combination plan/compiler test is not 128 live tests.
 | Selected workflow | Core proof | Optional proof |
 |---|---|---|
 | job-posting buying signal | fixture plus bounded permitted live job evidence; company/signal output; evidence-backed draft | proxy/Apify only if selected and allowed |
-| funded-startup headhunt | funding evidence kept separate from open-role evidence; score explains unknowns; draft | enrichment/Composio export if selected |
+| funding signal (GTM accounts) | funding evidence kept separate from open-role evidence; score explains unknowns; draft | enrichment/Composio export if selected |
 | procurement | plan vs actual notice labeled; stable IDs and dates | Sheets/CRM export if selected |
 | overseas partner | allowed evidence source and country/partner-type criteria | translation/proxy/Apify only if selected |
 | supplied file | import validation, dedupe, score, draft, local output | Composio or vault export if selected |

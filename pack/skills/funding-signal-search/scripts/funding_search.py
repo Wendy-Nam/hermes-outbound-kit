@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""funded-startup-search — 최근 투자받은 한국 스타트업을 헤드헌팅 BD 타깃으로 수집.
+"""funding-signal-search — 최근 투자를 유치한 국내 기업을 GTM 계정 후보로 수집.
 
 소스: Platum 투자 카테고리(WordPress REST API, 공개·인증불필요·합법).
-투자 직후 = 대규모 채용 임박 = 헤드헌터 골든타임. 신선도가 핵심이라 최신순 수집.
+투자 직후 = 조직 확장·새 도구 검토 시점일 가능성(예산의 증거는 아님). 신선도가 중요해 최신순 수집.
 
 출력: {회사, 라운드, 금액, 게시일, 섹터힌트, 링크}. --json / --table / 기본 목록.
-구직 키트 스크래퍼와 동일 계약(정규화 리스트) — 수집기·스테이징에 그대로 물릴 수 있음.
+다음 단계: hiring_enrich.py → signals_to_accounts.py → account_score.py.
 """
 import argparse
 import html
@@ -41,7 +41,7 @@ def _company(title):
     q = _QUOTED.search(title)                       # ‘회사명’ 우선(플래텀은 회사명을 따옴표로 감쌈)
     name = q.group(1).strip() if q else re.split(r"[,·]| - |—|…", title)[0].strip()
     return name.strip(" ,·'\"‘’“”")[:30]
-    # ponytail: 제목 파싱만으로 회사명 추정(따옴표 없는 설명형 제목은 노이즈), upgrade: enrich가 회사명 불일치로 원티드 매칭을 놓치면 startup-enrich 본문 1-hop에서 정확 회사명 확정
+    # 단순하게: 제목 파싱만으로 회사명 추정(따옴표 없는 설명형 제목은 노이즈), upgrade: enrich가 회사명 불일치로 원티드 매칭을 놓치면 startup-enrich 본문 1-hop에서 정확 회사명 확정
 
 
 def _sector(text):

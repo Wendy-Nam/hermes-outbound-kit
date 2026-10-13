@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [채용신호, 원티드, wanted, outbound]
-    related_skills: [kr-search, ats-search, buying-signals, startup-enrich]
+    related_skills: [kr-search, ats-search, buying-signals, hiring-signal-enrich]
 ---
 
 # 원티드 채용 공고 조회 (wanted-search)

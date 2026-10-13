@@ -39,8 +39,8 @@
   configuration and skin/widget files. Host loading and delegated task remain separate verification.
 - OmniRoute: Docker calls/platform responses mocked; explicit image platform, optional-off behavior,
   deployment ownership, private credential handling, resume and exact route-document mapping tested.
-- Ported skills (docs/SKILLS.md): fresh offline install copied all 25 skills; installed scripts compile;
-  `account_score.py --selftest` 6/6; BANT scorer; headhunt score → outreach draft → CRM ingest/status on
+- Ported skills (docs/SKILLS.md): fresh offline install copied all 24 skills; installed scripts compile;
+  `account_score.py --selftest` 8/8; BANT scorer; signals → accounts → score → outreach draft → CRM ingest/status on
   synthetic input with the ledger under `$HERMES_HOME`. Live funding/job-board requests were blocked by this
   environment's egress and are reported as failures (exit 2), not as zero results; live sources unverified.
 - PPT is cancelled and excluded from public distribution. Internal planning/reviews are also excluded.

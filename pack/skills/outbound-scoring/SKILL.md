@@ -23,7 +23,7 @@ metadata:
 | 축 | 묻는 것 | 신호 |
 |---|---|---|
 | **적합도(fit)** | 이 회사가 우리 고객이 될 수 있나 | 수익모델·업종·규모·기술스택 |
-| **긴급도(urgency)** | 지금 연락할 이유가 있나 | 임원 발언·발표 이력·경쟁사 접점·채용 |
+| **긴급도(urgency)** | 지금 연락할 이유가 있나 | 임원 발언·투자 유치·채용·발표 이력·경쟁사 접점 |
 
 `scripts/account_score.py`가 유일 계산자다. **손으로 점수 매기지 말 것** — 가중치·구간은 `sales-profile.json`이 기준이다.
 
@@ -52,9 +52,22 @@ metadata:
 | 임원 AI/데이터 발언 | 인터뷰·기고·링크드인 포스트 — **누가, 언제** 말했는지가 핵심 |
 | 발표 이력 | 컨퍼런스·세미나 프로그램. **직급이 높을수록 가중** |
 | 경쟁사 접점 | 도입 사례·후기·벤더 세미나 참석자 명단 |
-| 채용 | 데이터/AI 직무 공고 = 예산과 의지의 증거 |
+| 투자 유치 | `funding-signal-search`, `naver-news-search` — 라운드·금액·날짜(`days_ago`) |
+| 채용 | `wanted-search`·`kr-search`·`ats-search`·`hiring-signal-enrich` — 내 제품이 필요해지는 직무인지가 핵심. 예산의 증거는 아님 |
 
 발언·발표는 **며칠 지났는지(`days_ago`)를 반드시 기록한다.** 신선도 감쇠가 적용된다(30일 이내 100% → 1년 20%).
+
+### 1-1. 수집 결과를 채점 입력으로 바꾸기
+투자·채용 수집 스크립트의 `--json` 출력은 `signals_to_accounts.py`가 회사당 1줄 입력으로 바꾼다.
+확인된 값만 옮기고(업종·규모·투자·채용), 모르는 값은 비워 둔다.
+```bash
+python3 ${HERMES_SKILL_DIR}/../funding-signal-search/scripts/funding_search.py --json \
+  | python3 ${HERMES_SKILL_DIR}/../hiring-signal-enrich/scripts/hiring_enrich.py --json \
+  | python3 ${HERMES_SKILL_DIR}/scripts/signals_to_accounts.py \
+  | python3 ${HERMES_SKILL_DIR}/scripts/account_score.py --jsonl --json-out > scored.json
+```
+투자 기사와 채용 공고만으로는 수익모델·기술스택을 모르므로 보통 `리서치 필요`가 나온다.
+상위 계정을 `prospect-research`로 조사해 근거를 채우고 다시 채점한다.
 
 ### 2. 채점
 ```bash

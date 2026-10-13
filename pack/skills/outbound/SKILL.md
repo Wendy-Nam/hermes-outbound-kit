@@ -34,11 +34,11 @@ Pick the narrower skill when the request matches it; all of them keep the same r
 | Stage | Skills |
 |---|---|
 | Define target | `gtm-icp-brief` |
-| Find accounts | `lead-prospecting` (case study → competitor/ecosystem expansion), `funded-startup-search` (new funding rounds) |
-| Hiring signals | `wanted-search`, `kr-search`, `ats-search`, `sales-job-sourcing`, `startup-enrich` |
+| Find accounts | `lead-prospecting` (case study → competitor/ecosystem expansion), `funding-signal-search` (new funding rounds) |
+| Hiring signals | `wanted-search`, `kr-search`, `ats-search`, `sales-job-sourcing`, `hiring-signal-enrich` |
 | News/public signals | `naver-news-search`, `news-monitoring-briefing`, `buying-signals`, `korean-public-research`, `overseas-partner-research` |
 | Research a company/person | `prospect-research`, `web-reader` |
-| Prioritise | `outbound-scoring` (fit × urgency, coverage gate), `lead-prospecting` BANT scorer, `startup-score` |
-| Draft | `evidence-to-outreach`, `bd-outreach`, `linkedin-cold-messaging`, then `korean-humanizer` for tone |
+| Prioritise | `outbound-scoring` (fit × urgency incl. funding/hiring, coverage gate; `signals_to_accounts.py` converts collected signals), `lead-prospecting` BANT scorer |
+| Draft | `evidence-to-outreach`, `signal-outreach-draft`, `linkedin-cold-messaging`, then `korean-humanizer` for tone |
 | QA | `gtm-list-qa`, `gtm-copy-qa` |
-| Track | `startup-crm` (human-edited status and notes are never overwritten) |
+| Track | `account-crm` (human-edited status and notes are never overwritten) |

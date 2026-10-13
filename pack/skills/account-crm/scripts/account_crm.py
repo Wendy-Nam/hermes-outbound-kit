@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""startup-crm — BD 타깃 파이프라인 추적(발굴→접촉→응답→미팅→계약).
+"""account-crm — GTM 계정 파이프라인 추적(발굴→접촉→응답→미팅→제안→계약).
 
-장부(targets.json)에 회사별 레코드를 upsert. 파이프라인이 새 데이터를 부어도
-**사람이 손댄 상태·메모·접촉일은 절대 안 덮는다**(구직 키트의 스테이징 교훈: 사람 편집 보존).
+장부(accounts.json)에 회사별 레코드를 upsert. 파이프라인이 새 데이터를 부어도
+**사람이 손댄 상태·메모·접촉일은 절대 안 덮는다.**
 
-  crm.py --ingest             # stdin(scored json) → 신규 발굴 추가, 기존은 데이터만 갱신
-  crm.py --status "회사=접촉"   # 상태 갱신
-  crm.py --note   "회사=메모"   # 메모 추가(누적)
-  crm.py --list [--stage 접촉] # 파이프라인 보기
+  account_crm.py --ingest     # stdin(account_score --json-out) → 신규 발굴 추가, 기존은 데이터만 갱신
+  account_crm.py --status "회사=접촉"   # 상태 갱신
+  account_crm.py --note   "회사=메모"   # 메모 추가(누적)
+  account_crm.py --list [--stage 접촉] # 파이프라인 보기
 """
 import argparse
 import json
@@ -15,13 +15,13 @@ import os
 import re
 import sys
 
-# 기본 장부: $HERMES_HOME/headhunt/targets.json (스킬 폴더 밖이라 업데이트에 덮이지 않음).
+# 기본 장부: $HERMES_HOME/gtm/accounts.json (스킬 폴더 밖이라 업데이트에 덮이지 않음).
 _HOME = os.environ.get("HERMES_HOME", "")
-LEDGER = os.environ.get("HH_CRM_LEDGER") or (
-    os.path.join(_HOME, "headhunt", "targets.json") if _HOME else "targets.json")
+LEDGER = os.environ.get("OUTBOUND_CRM_LEDGER") or (
+    os.path.join(_HOME, "gtm", "accounts.json") if _HOME else "accounts.json")
 if os.path.dirname(LEDGER):
     os.makedirs(os.path.dirname(LEDGER), exist_ok=True)
-STAGES = ["발굴", "접촉", "응답", "미팅", "계약", "실패"]
+STAGES = ["발굴", "접촉", "응답", "미팅", "제안", "계약", "보류", "실패"]
 
 
 def _key(name):
@@ -46,7 +46,7 @@ def _save(d):
 
 
 # 파이프라인이 채우는 필드(갱신 대상) vs 사람이 채우는 필드(보존 대상)
-_DATA_FIELDS = ("company", "round", "amount", "sector", "open_roles", "roles", "score", "url", "date")
+_DATA_FIELDS = ("company", "action", "fit", "urgency", "fit_missing", "urgency_missing", "signals", "evidence")
 _HUMAN_FIELDS = ("status", "notes", "contacted_at")
 
 
@@ -82,9 +82,9 @@ def _find(led, name):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="BD 타깃 CRM 파이프라인")
-    ap.add_argument("--ingest", action="store_true", help="stdin scored json 흡수")
-    ap.add_argument("--status", help='"회사=상태" (발굴/접촉/응답/미팅/계약/실패)')
+    ap = argparse.ArgumentParser(description="GTM 계정 CRM 파이프라인")
+    ap.add_argument("--ingest", action="store_true", help="stdin account_score --json-out 흡수")
+    ap.add_argument("--status", help='"회사=상태" (발굴/접촉/응답/미팅/제안/계약/보류/실패)')
     ap.add_argument("--note", help='"회사=메모"')
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--stage", help="--list 필터")
@@ -104,7 +104,7 @@ def main():
             sys.exit(f"상태는 {STAGES} 중 하나")
         k = _find(led, name)
         if not k:
-            sys.exit(f"'{name}' 타깃 없음")
+            sys.exit(f"'{name}' 계정 없음")
         led[k]["status"] = val.strip()
         if val.strip() == "접촉" and not led[k].get("contacted_at"):
             led[k]["contacted_at"] = "(접촉 표시)"
@@ -116,7 +116,7 @@ def main():
         name, _, txt = a.note.partition("=")
         k = _find(led, name)
         if not k:
-            sys.exit(f"'{name}' 타깃 없음")
+            sys.exit(f"'{name}' 계정 없음")
         led[k].setdefault("notes", []).append(txt.strip())
         _save(led)
         print(f"{led[k]['company']} 메모 추가")
@@ -125,14 +125,14 @@ def main():
     # 기본: --list
     recs = [v for v in led.values() if not a.stage or v.get("status") == a.stage]
     order = {s: i for i, s in enumerate(STAGES)}
-    recs.sort(key=lambda r: (order.get(r.get("status"), 9), -(r.get("score") or 0)))
-    print(f"{'상태':<6}{'점수':<6}{'회사':<20}{'라운드':<9}{'공고':<5}메모")
+    recs.sort(key=lambda r: (order.get(r.get("status"), 9), -((r.get("fit") or 0) + (r.get("urgency") or 0))))
+    print(f"{'상태':<6}{'판정':<9}{'적합':<5}{'긴급':<5}{'회사':<20}메모")
     for r in recs:
-        opn = r.get("open_roles")
-        opn = "?" if opn is None else str(opn)
+        fit = "—" if r.get("fit") is None else str(r["fit"])
+        urg = "—" if r.get("urgency") is None else str(r["urgency"])
         note = (r.get("notes") or [""])[-1][:30]
-        print(f"{r.get('status',''):<6}{str(r.get('score','')):<6}{(r.get('company') or '')[:18]:<20}"
-              f"{r.get('round',''):<9}{opn:<5}{note}")
+        print(f"{r.get('status',''):<6}{(r.get('action') or ''):<9}{fit:<5}{urg:<5}"
+              f"{(r.get('company') or '')[:18]:<20}{note}")
     from collections import Counter
     c = Counter(r.get("status") for r in led.values())
     print("\n파이프라인:", " · ".join(f"{s} {c.get(s,0)}" for s in STAGES))

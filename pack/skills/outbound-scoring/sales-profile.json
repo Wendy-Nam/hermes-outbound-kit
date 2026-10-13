@@ -12,7 +12,7 @@
     "min_coverage": 0.5
   },
   "fit": {
-    "_설명": "적합도: 이 회사가 우리 고객이 될 수 있는가",
+    "_설명": "적합도: 이 회사가 우리 고객이 될 수 있는가. industry·size는 투자 기사에서 일부 채워지지만 revenue_model·tech_stack은 리서치가 필요하다.",
     "weights": {
       "revenue_model": 35,
       "industry": 25,
@@ -89,12 +89,13 @@
     ]
   },
   "urgency": {
-    "_설명": "긴급도: 지금 연락할 이유가 있는가. 증거 있는 신호만 채점, recency_decay는 [며칠 이내, 배율].",
+    "_설명": "긴급도: 지금 연락할 이유가 있는가. 증거 있는 신호만 채점한다. recency_decay는 [며칠 이내, 배율]로 dict 신호의 days_ago에 적용된다. 각 신호 키 X의 밴드는 X_bands(exec_signal→exec_bands, event_signal→event_bands).",
     "weights": {
-      "exec_signal": 35,
-      "event_signal": 30,
-      "competitor": 20,
-      "hiring": 15
+      "exec_signal": 25,
+      "funding": 25,
+      "hiring": 25,
+      "event_signal": 15,
+      "competitor": 10
     },
     "exec_bands": [
       [
@@ -110,22 +111,36 @@
         0.3
       ]
     ],
-    "recency_decay": [
+    "funding_bands": [
       [
-        30,
+        "시리즈\\s*[C-Z]|Series\\s*[C-Z]|프리\\s*IPO|[0-9]{3,}\\s*억",
         1.0
       ],
       [
-        90,
+        "시리즈\\s*B|Series\\s*B|[5-9][0-9]\\s*억",
+        0.9
+      ],
+      [
+        "시리즈\\s*A|Series\\s*A|프리\\s*A|[1-4][0-9]\\s*억",
         0.7
       ],
       [
-        180,
+        "시드|seed|엔젤|브릿지|투자\\s*유치",
         0.4
+      ]
+    ],
+    "hiring_bands": [
+      [
+        "데이터 엔지니어|MLOps|AI 엔지니어|데이터 플랫폼",
+        1.0
       ],
       [
-        365,
-        0.2
+        "데이터 분석가|BI|그로스",
+        0.7
+      ],
+      [
+        "개발자|엔지니어|기획자",
+        0.3
       ]
     ],
     "event_bands": [
@@ -152,18 +167,22 @@
         0.6
       ]
     ],
-    "hiring_bands": [
+    "recency_decay": [
       [
-        "데이터 엔지니어|MLOps|AI 엔지니어|데이터 플랫폼",
+        30,
         1.0
       ],
       [
-        "데이터 분석가|BI|그로스",
+        90,
         0.7
       ],
       [
-        "개발자|기획자",
-        0.3
+        180,
+        0.4
+      ],
+      [
+        365,
+        0.2
       ]
     ]
   }

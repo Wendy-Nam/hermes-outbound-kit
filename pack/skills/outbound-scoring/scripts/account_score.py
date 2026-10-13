@@ -13,6 +13,7 @@
     "fit":     {"revenue_model": "구독 기반 SaaS", "industry": "핀테크",
                 "size": "시리즈C", "tech_stack": "Snowflake, dbt"},
     "urgency": {"exec_signal":  {"text": "대표가 AI 도입 선언", "days_ago": 12},
+                "funding":      {"text": "시리즈B 150억 투자 유치", "days_ago": 5},
                 "event_signal": {"text": "CTO가 데이터 컨퍼런스 발표", "days_ago": 40},
                 "competitor":   {"text": "경쟁사 솔루션 도입 검토"},
                 "hiring":       {"text": "데이터 엔지니어 채용 중"}},
@@ -97,10 +98,8 @@ def evaluate(acc, p):
     fitw = {k: v for k, v in fitw.items() if not k.startswith("_")}
     fitb = {k: _bands(p["fit"].get(k + "_bands")) for k in fitw}
     urgw = {k: v for k, v in p["urgency"]["weights"].items() if not k.startswith("_")}
-    urgb = {"exec_signal": _bands(p["urgency"].get("exec_bands")),
-            "event_signal": _bands(p["urgency"].get("event_bands")),
-            "competitor": _bands(p["urgency"].get("competitor_bands")),
-            "hiring": _bands(p["urgency"].get("hiring_bands"))}
+    # 긴급도 신호 X의 밴드는 X_bands. exec_signal→exec_bands처럼 "_signal" 접미사는 뗀다.
+    urgb = {k: _bands(p["urgency"].get(k.replace("_signal", "") + "_bands")) for k in urgw}
     decay = p["urgency"].get("recency_decay") or []
 
     mc = float(p["cutoff"].get("min_coverage", 0.5))
@@ -121,7 +120,8 @@ def evaluate(acc, p):
     return {"company": acc.get("company", "?"), "fit": fit, "urgency": urg,
             "action": action, "fit_used": fu, "fit_missing": fm,
             "urgency_used": uu, "urgency_missing": um,
-            "evidence": acc.get("evidence") or {}}
+            "evidence": acc.get("evidence") or {},
+            "signals": acc.get("signals") or {}}
 
 
 def fmt(r):
@@ -161,23 +161,31 @@ def selftest(p):
            "fit": {"revenue_model": "구독 기반 SaaS", "industry": "핀테크",
                    "size": "시리즈C 스케일업", "tech_stack": "Snowflake, dbt"},
            "urgency": {"exec_signal": {"text": "대표가 AI 도입 선언", "days_ago": 10},
+                       "funding": {"text": "시리즈C 300억 투자 유치", "days_ago": 7},
+                       "hiring": {"text": "데이터 엔지니어 채용"},
                        "event_signal": {"text": "CTO 발표", "days_ago": 20},
-                       "competitor": {"text": "경쟁사 도입 검토"},
-                       "hiring": {"text": "데이터 엔지니어 채용"}}}
+                       "competitor": {"text": "경쟁사 도입 검토"}}}
     thin = {"company": "리서치부족", "fit": {"industry": "핀테크"}, "urgency": {}}
     stale = {"company": "오래된신호",
              "fit": {"revenue_model": "구독 기반 SaaS", "industry": "SaaS",
                      "size": "시리즈C", "tech_stack": "Snowflake"},
              "urgency": {"exec_signal": {"text": "대표가 AI 도입 선언", "days_ago": 300}}}
-    r1, r2, r3 = evaluate(hot, p), evaluate(thin, p), evaluate(stale, p)
+    # 투자 기사 + 채용 공고만 있는 계정: 긴급도는 나오지만 적합도는 리서치가 더 필요하다.
+    funded = {"company": "투자기사만",
+              "fit": {"industry": "AI", "size": "시리즈B"},
+              "urgency": {"funding": {"text": "시리즈B 150억 투자 유치", "days_ago": 3},
+                          "hiring": {"text": "데이터 엔지니어, 백엔드 개발자"}}}
+    r1, r2, r3, r4 = (evaluate(x, p) for x in (hot, thin, stale, funded))
     assert r1["action"] == "지금 콜", r1
     assert r2["urgency"] is None and r2["action"] == "리서치 필요", r2
     assert r2["fit"] is None, ("커버리지 게이트: 업종 하나로 점수가 나오면 안 된다", r2)
     assert "revenue_model" in r2["fit_missing"], r2
-    assert r3["urgency"] is None, ("신호 1개(35%)는 커버리지 미달이어야 한다", r3)
-    for r in (r1, r2, r3):
+    assert r3["urgency"] is None, ("신호 1개(25%)는 커버리지 미달이어야 한다", r3)
+    assert r4["urgency"] is not None and r4["fit"] is None and r4["action"] == "리서치 필요", r4
+    assert "revenue_model" in r4["fit_missing"] and "tech_stack" in r4["fit_missing"], r4
+    for r in (r1, r2, r3, r4):
         print("  ", fmt(r))
-    print("selftest 6/6 통과")
+    print("selftest 8/8 통과")
     return 0
 
 
