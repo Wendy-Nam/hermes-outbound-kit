@@ -173,7 +173,7 @@ def install(data, home):
         raise ValueError('설치 경로에 심볼릭 링크가 있습니다.')
     managed = {home / 'outbound-profile.json': json.dumps(data, ensure_ascii=False, indent=2) + '\n'}
     for src in sorted((ROOT / 'pack').rglob('*')):
-        if src.is_file():
+        if src.is_file() and '__pycache__' not in src.parts and src.suffix != '.pyc':
             managed[home / src.relative_to(ROOT / 'pack')] = src.read_text(encoding='utf-8')
     for path, content in managed.items():
         if any(p.is_symlink() for p in (path, *path.parents)):

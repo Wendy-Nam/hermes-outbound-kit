@@ -14,7 +14,10 @@ files += ['paths.py', 'workflow.py', 'runtime_connect.py', 'docs_support.py',
           'operations.py', 'vault_sync.py', 'support.py', 'start.py',
           'bootstrap.command', 'bootstrap.ps1', 'test_bot.py', 'local_smoke.py',
           'privacy_audit.py', 'public_data_lens.py']
-for folder in ('docs', 'agent-skill', 'pack', 'samples'):
+# pack/ is a curated skill tree: ship every file (scripts, data, third-party LICENSE files).
+files.extend(str(p.relative_to(root)) for p in (root / 'pack').rglob('*')
+             if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc')
+for folder in ('docs', 'agent-skill', 'samples'):
     files.extend(str(p.relative_to(root)) for p in (root / folder).rglob('*')
                  if p.is_file() and (p.suffix in ('.md', '.json', '.py', '.csv')
                                     or (folder == 'samples' and p.suffix == '.html'))

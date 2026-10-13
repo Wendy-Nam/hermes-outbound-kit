@@ -1,0 +1,82 @@
+[
+ {
+  "company": "쿠팡(Coupang)",
+  "ats": "greenhouse",
+  "token": "coupang"
+ },
+ {
+  "company": "Databricks",
+  "ats": "greenhouse",
+  "token": "databricks"
+ },
+ {
+  "company": "Datadog",
+  "ats": "greenhouse",
+  "token": "datadog"
+ },
+ {
+  "company": "Anthropic",
+  "ats": "greenhouse",
+  "token": "anthropic"
+ },
+ {
+  "company": "MongoDB",
+  "ats": "greenhouse",
+  "token": "mongodb"
+ },
+ {
+  "company": "Airbnb",
+  "ats": "greenhouse",
+  "token": "airbnb"
+ },
+ {
+  "company": "당근(Daangn)",
+  "ats": "greenhouse",
+  "token": "daangn"
+ },
+ {
+  "company": "크래프톤(KRAFTON)",
+  "ats": "greenhouse",
+  "token": "krafton"
+ },
+ {
+  "company": "몰로코(Moloco)",
+  "ats": "greenhouse",
+  "token": "moloco"
+ },
+ {
+  "company": "센드버드(Sendbird)",
+  "ats": "greenhouse",
+  "token": "sendbird"
+ },
+ {
+  "company": "Elastic",
+  "ats": "greenhouse",
+  "token": "elastic"
+ },
+ {
+  "company": "OpenAI",
+  "ats": "ashby",
+  "token": "openai"
+ },
+ {
+  "company": "Notion",
+  "ats": "ashby",
+  "token": "notion"
+ },
+ {
+  "company": "Palantir",
+  "ats": "lever",
+  "token": "palantir"
+ },
+ {
+  "company": "Snowflake",
+  "ats": "ashby",
+  "token": "snowflake"
+ },
+ {
+  "company": "FriendliAI(프렌들리에이아이)",
+  "ats": "ashby",
+  "token": "friendliai"
+ }
+]
