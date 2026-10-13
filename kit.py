@@ -167,13 +167,38 @@ def preserve_write(path, text):
         stream.write(text)
 
 
+def _seed_sales_profile(data, home):
+    """설치 답변(고객·키워드·채용 키워드)으로 사용자용 채점 기준을 처음 한 번 만든다. 이미 있으면 건드리지 않는다."""
+    target = home / 'sales-profile.json'
+    source = ROOT / 'pack' / 'skills' / 'outbound-scoring' / 'sales-profile.json'
+    if target.exists() or not source.exists():
+        return
+    profile = json.loads(source.read_text(encoding='utf-8'))
+    def terms(*values):
+        found = []
+        for value in values:
+            for term in re.split(r'[,;/|]+', value or ''):
+                term = term.strip()
+                if len(term) >= 2 and term not in found:
+                    found.append(term)
+        return '|'.join(re.escape(t) for t in found[:12])
+    icp = terms(data.get('keywords'), data.get('customer'))
+    if icp:
+        profile['fit']['industry_bands'].insert(0, [icp, 1.0])
+    roles = terms(data.get('job_keywords'))
+    if roles:
+        profile['urgency']['hiring_bands'].insert(0, [roles, 1.0])
+    profile['_설명'].append('설치 답변(keywords·customer·job_keywords)으로 첫 줄을 자동 추가했다. 자유롭게 고쳐도 재설치 때 덮지 않는다.')
+    preserve_write(target, json.dumps(profile, ensure_ascii=False, indent=2) + '\n')
+
+
 def install(data, home):
     home = Path(home).expanduser().absolute()
     if any(p.is_symlink() for p in (home, *home.parents)):
         raise ValueError('설치 경로에 심볼릭 링크가 있습니다.')
     managed = {home / 'outbound-profile.json': json.dumps(data, ensure_ascii=False, indent=2) + '\n'}
     for src in sorted((ROOT / 'pack').rglob('*')):
-        if src.is_file():
+        if src.is_file() and '__pycache__' not in src.parts and src.suffix != '.pyc':
             managed[home / src.relative_to(ROOT / 'pack')] = src.read_text(encoding='utf-8')
     for path, content in managed.items():
         if any(p.is_symlink() for p in (path, *path.parents)):
@@ -182,6 +207,7 @@ def install(data, home):
             raise ValueError(f'기존 변경을 보존했습니다: {path}')
     for path, content in managed.items():
         preserve_write(path, content)
+    _seed_sales_profile(data, home)
     print('스킬 팩 설치 완료. 모델/채널 연결은 아직 별도 확인이 필요합니다.')
 
 

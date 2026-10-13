@@ -3,7 +3,7 @@ chcp 65001 >nul
 cd /d "%~dp0"
 py -3 -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)" >nul 2>&1
 if errorlevel 1 (
-    powershell.exe -NoProfile -File "%~dp0bootstrap.ps1"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0bootstrap.ps1"
 ) else (
     py -3 "%~dp0start.py"
 )

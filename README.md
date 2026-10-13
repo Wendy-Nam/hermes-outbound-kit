@@ -87,13 +87,18 @@ Linux Docker Engine, macOS/Windows Docker Desktop(Linux containers)을 지원하
   호환성 검증 결과를 확인해야 하며, 선택했다는 이유로 설치·모델 라우팅 완료로 보지 않습니다.
 - 모델 응답과 실채널 연결, Mac/Windows 실행은 실제 계정/기기에서 추가 확인해야 합니다.
 
+## 포함된 업무 스킬
+
+세일즈 아웃바운드(ICP → 계정 발굴 → 채용·투자·뉴스 신호 → 리서치 → 적합도×긴급도 채점 → 초안 → 검수),
+투자·채용 신호 기반 계정 발굴(투자 유치 기업 → 채용 보강 → 적합도×긴급도 채점 → 초안 → 계정 CRM)까지 GTM 스킬 24개가 함께 설치됩니다.
+목록, 사용자 설정 파일 위치, 외부로 나가는 데이터, 출처·라이선스는 [포함된 스킬](docs/SKILLS.md)을 보세요.
+
 ## 워크숍 자료
 
 - [실행 가능한 소스→볼트 데모](docs/DEMO.md)
-- [기존 kit 입력 누락 감사](docs/WIZARD-FIELD-AUDIT.md)
 - [서비스별 준비](docs/SERVICES.md), [옵시디언](docs/OBSIDIAN.md)
 
-검증 상태는 [VALIDATION.md](VALIDATION.md), 구현 범위는 [PLAN.md](PLAN.md)를 보세요.
+검증 상태와 아직 실기기에서 확인하지 않은 범위는 [VALIDATION.md](VALIDATION.md)를 보세요.
 
 - [전체 레퍼런스 통합 감사](docs/REFERENCE-INTEGRATION.md)
 - [격리 로컬 테스트와 결과 품질 평가](docs/RESULT-QUALITY.md)

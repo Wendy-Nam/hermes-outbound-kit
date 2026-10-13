@@ -25,3 +25,24 @@ Write readable Markdown/CSV results to a user-selected folder. No invented email
 private profiles, access-control bypass or personal data from another installation.
 Public procurement plans and actual tender notices must be labeled distinctly.
 If a source/tool is unavailable, report it; don't fabricate successful research.
+
+## Skill map
+
+Pick the narrower skill when the request matches it; all of them keep the same rules
+(public evidence only, unknown stays unknown, drafts only, no sending).
+
+| Stage | Skills |
+|---|---|
+| Define target | `gtm-icp-brief` |
+| Find accounts | `lead-prospecting` (case study → competitor/ecosystem expansion), `funding-signal-search` (new funding rounds) |
+| Hiring signals | `wanted-search`, `kr-search`, `ats-search`, `sales-job-sourcing`, `hiring-signal-enrich` |
+| News/public signals | `naver-news-search`, `news-monitoring-briefing`, `buying-signals`, `korean-public-research`, `overseas-partner-research` |
+| Research a company/person | `prospect-research`, `web-reader` |
+| Prioritise | `outbound-scoring` (fit × urgency incl. funding/hiring, coverage gate; `signals_to_accounts.py` converts collected signals), `lead-prospecting` BANT scorer |
+| Draft | `evidence-to-outreach`, `signal-outreach-draft`, `linkedin-cold-messaging`, then `korean-humanizer` for tone |
+| QA | `gtm-list-qa`, `gtm-copy-qa` |
+| Track | `account-crm` (human-edited status and notes are never overwritten) |
+
+The Obsidian vault is the single record: `account-crm` and `signal-outreach-draft` write `GTM/Accounts`,
+`GTM/Drafts` and `GTM/Pipeline.md` in the configured vault; the kit workflow writes `Accounts/Evidence/Scores/Drafts/Review`.
+Tell the user which note changed instead of pasting long results into chat.

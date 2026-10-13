@@ -2,8 +2,10 @@
 
 ## Executed in the Linux development environment
 
-- Latest completed unittest: **267 passed** with `python3 -m unittest discover -s tests -q`.
-  Reference-integration and test-bot changes are included; this count is not live-device evidence.
+- Latest completed unittest: **267 passed** with `python3 -m unittest discover -s tests -q` in the
+  development workspace. The `tests/` directory is not published in this repository, so this count
+  cannot be reproduced from a clone; `python3 local_smoke.py` and `python3 start.py --offline` are the
+  reproducible checks here. This count is not live-device evidence.
   Fixture/mock tests are not live installation evidence.
 - Configuration contract covers desktop/server × four channels × 16 service subsets = 128 combinations.
 - Three headless Chromium flows: both channels, no channel, remote SSH; downloaded configuration passed
@@ -37,6 +39,10 @@
   configuration and skin/widget files. Host loading and delegated task remain separate verification.
 - OmniRoute: Docker calls/platform responses mocked; explicit image platform, optional-off behavior,
   deployment ownership, private credential handling, resume and exact route-document mapping tested.
+- Ported skills (docs/SKILLS.md): fresh offline install copied all 24 skills; installed scripts compile;
+  `account_score.py --selftest` 8/8; BANT scorer; signals → accounts → score → outreach draft → CRM ingest/status on
+  synthetic input with the ledger under `$HERMES_HOME`. Live funding/job-board requests were blocked by this
+  environment's egress and are reported as failures (exit 2), not as zero results; live sources unverified.
 - PPT is cancelled and excluded from public distribution. Internal planning/reviews are also excluded.
 
 ## Evidence boundaries

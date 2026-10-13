@@ -17,7 +17,11 @@ import tempfile
 import urllib.error
 import urllib.request
 
-import yaml
+try:
+    import yaml
+except ImportError:  # 비기술자 PC의 기본 Python에는 PyYAML이 없을 수 있다
+    raise SystemExit("PyYAML이 필요합니다. Hermes가 설치된 Python으로 실행하거나 "
+                     "`python3 -m pip install --user pyyaml` 후 다시 실행하세요.")
 
 
 ENDPOINT = "https://service.datahub.kr/projects/public-data-lens/mcp"
