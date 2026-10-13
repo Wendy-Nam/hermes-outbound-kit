@@ -8,8 +8,8 @@ __pycache__/
 dist/
 output/
 results/
-vault/
-profiles/
+/vault/
+/profiles/
 .installer-state/
 .official-hermes-docs/
 *.log
