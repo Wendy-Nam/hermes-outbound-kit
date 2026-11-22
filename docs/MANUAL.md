@@ -204,6 +204,14 @@ python3 outbound.py meeting prep --company "알파데이터" --attendee "김팀�
 python3 outbound.py meeting post --company "알파데이터" --attendee "김팀장" \
   --notes-file ./meeting-notes.txt --vault ~/Documents/Hermes-GTM
 
+# 또는 Plaud·스마트폰 미팅 녹음(.mp3/.m4a/.wav)을 무료 Groq Whisper로 자동 전사 -> 리캡 초안까지 한 번에
+# (먼저 `python3 outbound.py env set --key GROQ_API_KEY` 등록)
+python3 outbound.py meeting post --company "알파데이터" --attendee "김팀장" \
+  --audio-file ./meeting.mp3 --vault ~/Documents/Hermes-GTM
+
+# 단독 음성 전사만 필요할 때
+python3 outbound.py transcribe ./meeting.mp3 --output ./transcript.txt
+
 # 콜드메일 발송 전 도메인 SPF / DKIM / DMARC / MX 점검
 python3 outbound.py health --domain example.com
 ```
@@ -214,7 +222,17 @@ python3 outbound.py health --domain example.com
 
 매일 영업 파이프라인을 굴릴 때 생기는 오탐·중복·보드 불일치·초안/발송 혼동을 막아주는 운영 도구입니다.
 
-### A. Obsidian Kanban 보드 동기화 & 볼트 무결성 자동 감사
+### A. API 키 안전 관리 & 무료 도구 진단 (`outbound.py env`)
+```sh
+# 설정된 키 상태(값 비공개) + 무료 Crawl4AI · Playwright · tesseract 설치 여부 확인
+python3 outbound.py env status
+
+# 숨김 입력으로 ~/.hermes-outbound/.env (0600 권한)에 안전하게 키 저장
+python3 outbound.py env set --key DATA_GO_KR_API_KEY
+python3 outbound.py env set --key GROQ_API_KEY
+```
+
+### B. Obsidian Kanban 보드 동기화 & 볼트 무결성 자동 감사
 - LinkedIn 소싱 시 개인 리드는 `LinkedIn/{회사명}/{이름}.md`에 저장되며, **초안 작성(`메시지상태: 미발송`, `연락횟수: 0`)과 실제 발송 이력이 엄격히 분리**됩니다.
 - 공개 게시물이 없으면 상대 성향·문체를 추측하지 않고 사실 근거만 기록합니다.
 ```sh
@@ -229,24 +247,30 @@ python3 outbound.py crm stage --vault ~/Documents/Hermes-GTM \
 python3 outbound.py vault audit --vault ~/Documents/Hermes-GTM
 ```
 
-### B. 나라장터(G2B) 발주계획 · 사전규격 · 입찰공고 기준선 차분 감시
-발주계획(초기 선제 신호)과 실제 입찰공고를 구분하고, 카페/편의시설 같은 잡음 오탐을 자동 제외합니다.
+### C. 나라장터(G2B) 3단계 차분 감시 & 공공데이터 렌즈(무료·無인증 9.6만 데이터셋 탐색)
+발주계획(초기 선제 신호)과 실제 입찰공고를 구분하고, 카페/편의시설 같은 잡음 오탐을 자동 제외합니다. 또한 **API 키 없이** 공공데이터포털 9.6만 개 목록에서 영업 타깃팅에 쓸 공공데이터셋과 활용 계획(`DRAFT`)을 바로 찾을 수 있습니다(`X-Datanav-No-Log: 1` 자동 적용).
 ```sh
-# 1) 초기 기준선 저장 (--initialize)
+# 1) 공공데이터 렌즈(Public Data Lens)로 내 영업 목적에 맞는 공공데이터 활용 계획 초안 생성 (API 키 불필요)
+python3 outbound.py lens plan-data "제조 스마트팩토리 잠재고객 발굴을 위해 공장등록·산업단지 공공데이터 결합 계획"
+python3 outbound.py lens search "공장등록" --limit 10
+python3 outbound.py lens columns "회사명,업종,소재지" --query "제조"
+
+# 2) 나라장터 초기 기준선 저장 (--initialize, DATA_GO_KR_API_KEY 필요)
 python3 outbound.py g2b --keywords "의료후송,의료지원,비상대피" \
   --stages order_plan,prespec,bid_notice --context-keywords "해외,파견,귀환" \
   --initialize --vault ~/Documents/Hermes-GTM
 
-# 2) 이후 매일 실행: 신규·변경 항목만 추출해 원장 갱신
+# 3) 이후 매일 실행: 신규·변경 항목만 추출해 원장 갱신
 python3 outbound.py g2b --keywords "의료후송,의료지원,비상대피" \
   --stages order_plan,prespec,bid_notice --context-keywords "해외,파견,귀환" \
   --vault ~/Documents/Hermes-GTM
 ```
 
-### C. 경쟁사 역추적 마켓 인텔리전스 · 쉬운 한국어 문체 감사 · 데일리 브리핑
+### D. 경쟁사 역추적 마켓 인텔리전스(RSS·웹·파일) · 쉬운 한국어 문체 감사 · 데일리 브리핑
 ```sh
-# 경쟁사 공개 사례 -> "돈을 쓴 문제" 역추적 -> 비슷한 타깃 큐(Lookalike-Queue.md) 생성
-python3 outbound.py intel --input ./competitor-signals.csv --competitor "GlobalCorp" --vault ~/Documents/Hermes-GTM
+# 경쟁사 공개 RSS / 사례 페이지(Crawl4AI JS 렌더링 자동 폴백) -> 신규 차분 & 비슷한 타깃 큐 생성
+python3 outbound.py intel --rss https://competitor.example.com/feed.xml \
+  --url https://competitor.example.com/case-studies --competitor "GlobalCorp" --vault ~/Documents/Hermes-GTM
 
 # 영업 전략 문서·제안서의 어려운 컨설팅 표현 & 마크다운 표 열 깨짐 자동 감사
 python3 outbound.py copy lint --mode doc --file ~/Documents/Hermes-GTM/Knowledge/영업\ 포지셔닝.md

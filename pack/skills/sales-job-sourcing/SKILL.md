@@ -30,7 +30,7 @@ CLI와 설정 모두에 값이 없으면 실패한다.
 키트 루트에서 evidence-first 전체 흐름을 실행한다.
 
 ```bash
-python3 workflow.py run \
+python3 outbound.py run \
   --config setup.json \
   --home "$HERMES_HOME" \
   --output ./outbound-runs \
@@ -43,16 +43,16 @@ python3 workflow.py run \
 수집기만 확인하려면 다음처럼 제한한다.
 
 ```bash
-python3 sources.py wanted "산업용 AI 영업" --limit 10 --config setup.json
-python3 sources.py saramin "해외영업" --limit 10 --config setup.json
+python3 outbound.py sources wanted "산업용 AI 영업" --limit 10 --config setup.json
+python3 outbound.py sources saramin "해외영업" --limit 10 --config setup.json
 ```
 
 네트워크 없이 파서 계약을 확인할 수 있는 합성 fixture:
 
 ```bash
-python3 sources.py wanted "영업" --fixture samples/source-wanted.json \
+python3 outbound.py sources wanted "영업" --fixture samples/source-wanted.json \
   --as-of 2026-10-13T10:00:00Z
-python3 sources.py saramin "영업" --fixture samples/source-saramin.html \
+python3 outbound.py sources saramin "영업" --fixture samples/source-saramin.html \
   --as-of 2026-10-13T10:00:00Z
 ```
 

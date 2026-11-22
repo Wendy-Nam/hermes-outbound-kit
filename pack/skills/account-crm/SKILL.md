@@ -37,4 +37,19 @@ python3 $C --list --stage 미팅                     # 단계 필터
 - 볼트 경로는 `--vault` → `OUTBOUND_VAULT` → 키트 설정의 `vault_path` → `$HERMES_HOME/vault` 순서로 찾는다.
 - 볼트가 없을 때만 `$HERMES_HOME/gtm/accounts.json`(또는 `OUTBOUND_CRM_LEDGER`)을 쓴다. `--no-vault`로 강제할 수 있다.
 
+## Obsidian Kanban 동기화 · 볼트 무결성 감사 · 미팅 녹음 후처리
+
+```bash
+# 1) 리드 단계 변경(실제 발송 시에만 --mark-sent) + CRM Board.md 동시 동기화
+python3 outbound.py crm stage --vault ~/Documents/Hermes-GTM \
+  --note ~/Documents/Hermes-GTM/LinkedIn/회사명/이름.md --to 컨택함 --mark-sent
+
+# 2) 볼트 전체 무결성 감사 (YAML · 보드 불일치 · 중복 URL/ID · 깨진 위키링크 · 표 열 깨짐)
+python3 outbound.py vault audit --vault ~/Documents/Hermes-GTM
+
+# 3) Plaud/미팅 녹음 파일(.mp3/.m4a/.wav) 무료 Groq Whisper 전사 -> 미팅 리캡 초안 & Obsidian 기록
+python3 outbound.py meeting post --company "예시기업" --attendee "김팀장" \
+  --audio-file ./meeting.mp3 --vault ~/Documents/Hermes-GTM
+```
+
 영업 데이터라 공유·커밋하지 않는다.

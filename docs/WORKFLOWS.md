@@ -1,6 +1,6 @@
 # 실행 가능한 아웃바운드 워크플로
 
-`workflow.py`는 선택한 소스를 읽고 정규화된 근거, 보수적 점수, 초안, Obsidian
+`python3 outbound.py run`(내부 `src/core/workflow.py`)는 선택한 소스를 읽고 정규화된 근거, 보수적 점수, 초안, Obsidian
 검토 노트까지 만든다. 메시지 발송, CRM 쓰기, 로그인 우회는 하지 않는다.
 
 ## 시나리오
@@ -9,8 +9,8 @@
 |---|---|---|---|
 | `job_signal` | `jobs` | `job_posting` | 원티드(상세 JD)·사람인·잡코리아·점핏·Greenhouse/Lever/Ashby/Greeting 멀티 보드 + 중복 병합 |
 | `funding_signal` | `funding` | `funding_signal` | Platum·VentureSquare 공개 WordPress API + 원티드 채용 현황 자동 보강 |
-| `tender_watch` | `tenders` | `procurement` | 나라장터(G2B) 공공데이터 OpenAPI(`DATA_GO_KR_API_KEY`) 또는 공식 export `file` 모드 |
-| `overseas_partner` | `overseas` | `overseas_partner` | 지정 공개 RSS/Atom 피드 또는 글로벌 ATS Korea/APAC 공고, 또는 `file` 모드 |
+| `tender_watch` | `tenders` | `procurement` | 나라장터(G2B) 공공데이터 OpenAPI(`DATA_GO_KR_API_KEY`) 또는 공식 export `file` 모드 (3단계 차분 감시는 `outbound.py g2b`) |
+| `overseas_partner` | `overseas` | `overseas_partner` | 지정 공개 RSS/Atom 피드 또는 글로벌 ATS Korea/APAC 공고, 또는 `file` 모드 (`outbound.py overseas`) |
 
 지원하지 않거나 키가 없는 live 모드는 빈 성공으로 위장하지 않고 명확한 오류/안내를 반환합니다.
 접근 차단(401/403/429), 응답 형식 변경도 `empty`와 구분되며 로그인/CAPTCHA 우회는 하지 않습니다.
@@ -19,7 +19,7 @@
 ## 가장 단순한 실행
 
 ```bash
-python workflow.py run \
+python3 outbound.py run \
   --config setup.json \
   --home ~/.hermes-outbound \
   --output ./output \
@@ -32,7 +32,7 @@ python workflow.py run \
 입력 경로가 어느 시나리오용인지 명확하도록 `--scenario` 하나를 요구한다.
 
 ```bash
-python workflow.py run --config setup.json --home ~/.hermes-outbound \
+python3 outbound.py run --config setup.json --home ~/.hermes-outbound \
   --output ./output --vault ./OutboundVault \
   --scenario tender_watch --source-mode file --source-path ./tenders.csv
 ```
@@ -61,7 +61,7 @@ provided 파일 계약:
 쓰기 전에 계약만 검사할 수도 있다.
 
 ```bash
-python workflow.py draft-import --input ./drafts.json
+python3 outbound.py workflow draft-import --input ./drafts.json
 ```
 
 모든 source record의 초안이 있어야 쓰기를 시작한다. 빈 결과, 12,000자를 넘는 본문,

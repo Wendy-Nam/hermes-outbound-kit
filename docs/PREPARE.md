@@ -10,10 +10,10 @@ API 키나 봇 계정 없이 첫 결과를 확인하고, Telegram·Discord, 실�
 - 이 키트 폴더를 압축 해제한 위치
 - 선택: 저장소 파일을 읽고 명령을 실행할 수 있는 Codex, Claude Code, Gemini CLI 같은 코딩 AI
 
-코딩 AI가 없어도 `start.py`를 실행하면 질문부터 설치·재개까지 이어집니다. `wizard.html`은 브라우저에서
+코딩 AI가 없어도 `python3 outbound.py start`를 실행하면 질문부터 설치·재개까지 이어집니다. `wizard.html`은 브라우저에서
 설정 파일만 따로 만들고 싶을 때 쓰는 선택 사항이며, 파일 다운로드 자체가 설치 완료는 아닙니다.
 
-Python이 없는 새 컴퓨터는 바로 `prepare.py`를 실행할 수 없습니다. 먼저 [설치 지원 안내](INSTALL-ASSISTANT.md)의
+Python이 없는 새 컴퓨터는 바로 `prepare.py`를 실행할 수 없습니다. 먼저 [설치 지원 안내](reference/INSTALL-ASSISTANT.md)의
 “Python이 없을 때” 절차로 공식 Hermes 설치 파일을 내려받아 hash를 확인하세요. 보안 기능을 끄거나
 인터넷 스크립트를 바로 shell로 넘기지 않습니다.
 

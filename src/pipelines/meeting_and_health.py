@@ -415,12 +415,16 @@ def main(argv: list[str] | None = None) -> int:
     p_prep.add_argument("--vault")
     p_prep.add_argument("--json", action="store_true")
 
-    p_post = sub.add_parser("post", help="미팅 메모 → 합의된 Next Steps & 리캡 이메일 초안 생성")
+    p_post = sub.add_parser("post", help="미팅 메모 또는 Plaud/음성 녹음(--audio-file) → 합의된 Next Steps & 리캡 이메일 초안 생성")
     p_post.add_argument("--company", required=True)
     p_post.add_argument("--attendee", default="담당자")
     p_post.add_argument("--notes-file", help="미팅 메모 파일(.md/.txt)")
+    p_post.add_argument("--audio-file", help="Plaud/미팅 녹음 파일(.mp3/.m4a/.wav) — Groq Whisper(무료 티어)로 자동 전사")
+    p_post.add_argument("--audio-model", default="whisper-large-v3-turbo", choices=("whisper-large-v3-turbo", "whisper-large-v3"))
+    p_post.add_argument("--audio-language", default="ko")
     p_post.add_argument("--notes", default="", help="직접 전달할 미팅 메모 텍스트")
     p_post.add_argument("--config", default=str(ROOT / "setup.json"))
+    p_post.add_argument("--home", default=None)
     p_post.add_argument("--vault")
     p_post.add_argument("--json", action="store_true")
 
@@ -449,9 +453,30 @@ def main(argv: list[str] | None = None) -> int:
             )
         else:
             notes = Path(args.notes_file).expanduser().read_text(encoding="utf-8-sig") if args.notes_file else args.notes
+            transcript_meta = None
+            if args.audio_file:
+                import audio_transcribe
+                out_txt = None
+                if args.vault:
+                    t_dir = Path(args.vault).expanduser().absolute() / "Meetings" / "Transcripts"
+                    t_dir.mkdir(parents=True, exist_ok=True)
+                    out_txt = t_dir / f"{Path(args.audio_file).stem}.txt"
+                tr = audio_transcribe.transcribe_audio(
+                    args.audio_file,
+                    out_path=out_txt,
+                    model=args.audio_model,
+                    language=args.audio_language,
+                    home=args.home,
+                )
+                if tr.get("status") != "ok":
+                    raise ValueError(tr.get("hint") or tr.get("error") or "오디오 전사에 실패했습니다.")
+                transcript_meta = {k: v for k, v in tr.items() if k != "text"}
+                notes = (notes + "\n\n" + tr["text"]).strip() if notes else tr["text"]
             res = generate_post_meeting(
                 args.company, notes, attendee=args.attendee, config=cfg, vault=args.vault,
             )
+            if transcript_meta:
+                res["transcript"] = transcript_meta
 
         if args.json:
             print(json.dumps({k: v for k, v in res.items() if k != "markdown"}, ensure_ascii=False, indent=2))

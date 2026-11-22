@@ -152,11 +152,11 @@ details .inside{padding:0 0 16px}
         <span id="quick-analyze-status" class="hint" style="margin:0"></span>
       </div>
       <div class="next-command" style="background:#121738;color:#eef0ff;margin-top:10px;font-size:12px">
-        # 브로셔 파일(.pptx/.docx/.pdf) + 자사/경쟁사 URL 자동 분석:<br>
-        python3 profile.py bootstrap --company-url https://company.example.com --competitor-url https://competitor.example.com --brochure ./brochure.pptx --output setup.json --insights ./Targeting-Insights.md --sync --force<br><br>
+        # 브로셔 파일(.pptx/.docx/.pdf/.png/.jpg) + 자사/경쟁사 URL 자동 분석 (Crawl4AI 무료 JS 렌더링 지원):<br>
+        python3 outbound.py profile bootstrap --company-url https://company.example.com --competitor-url https://competitor.example.com --brochure ./brochure.pptx --output setup.json --insights ./Targeting-Insights.md --sync --force<br><br>
         # 내 PC 발신메일함(.mbox/.eml/Thunderbird/Apple Mail) 구조·문체 분석:<br>
-        python3 profile.py style --discover<br>
-        python3 profile.py style --mbox ~/Downloads/Sent.mbox --config setup.json --apply
+        python3 outbound.py profile style --discover<br>
+        python3 outbound.py profile style --mbox ~/Downloads/Sent.mbox --config setup.json --apply
       </div>
     </div>
   </details>
@@ -180,6 +180,17 @@ details .inside{padding:0 0 16px}
     <label class="field"><span>핵심 가치제안 (1문장)</span><input name="value_proposition" maxlength="1000" placeholder="예: 반복 수작업을 줄이고 품질 편차를 낮춥니다"></label>
     <label class="field"><span>검증된 강점 / 제안 포인트</span><input name="proof_points" maxlength="1000" placeholder="예: 도입 전 PoC 범위와 ROI 가정을 무료로 정리해 드립니다"></label>
   </div>
+
+  <details style="margin-top:12px"><summary>무형 서비스 · 실제 이용자 vs 구매 의사결정자 분리 포지셔닝 (선택)</summary><div class="inside">
+    <p class="hint" style="margin-bottom:10px">서비스 이용자와 계약·예산 결정자가 다른 B2B(예: 해외 주재원 케어, 복지·안전·교육·보안 등)라면 아래를 채워 두세요. Obsidian <code>Knowledge/영업 포지셔닝.md</code>와 리드 노트에 자동 반영됩니다.</p>
+    <div class="grid">
+      <label class="field"><span>실제 이용자 (엔드유저)</span><input name="end_user_persona" maxlength="1000" placeholder="예: 해외 파견 주재원·장기 출장자"></label>
+      <label class="field"><span>구매 의사결정자</span><input name="buyer_persona" maxlength="1000" placeholder="예: 본사 EHS·안전기획·인사총무 팀장/임원"></label>
+      <label class="field"><span>고객이 자주 하는 오해</span><input name="common_misconception" maxlength="1000" placeholder="예: 기존 여행자보험으로 다 해결된다고 생각함"></label>
+      <label class="field"><span>실제 차이 / 실행 가치</span><input name="reality_differentiator" maxlength="1000" placeholder="예: 보험이 아니라 현지 병원 연결·지급보증·후송을 직접 실행"></label>
+      <label class="field full"><span>전면 교체 대신 부분 보완 진입 제안</span><input name="partial_entry_offer" maxlength="1000" placeholder="예: 특정 국가·프로젝트·한국 귀환 인계 구간부터 작은 시험 운영으로 시작"></label>
+    </div>
+  </div></details>
 
   <div class="subcard">
     <h3>발신자 프로필 &amp; 아웃리치 스타일</h3>
@@ -749,7 +760,9 @@ document.getElementById('import-file').addEventListener('change', async e => {
       'server_host','server_port','server_user','ssh_auth','ssh_key_action','ssh_key_path',
       'model_provider','model_auth','channel','telegram_owner','telegram_mode','discord_owner',
       'discord_guild_id','discord_channel_id','scenario','campaign_name','product','customer',
-      'value_proposition','proof_points','sender_name','sender_company','sender_role',
+      'value_proposition','proof_points',
+      'end_user_persona','buyer_persona','common_misconception','reality_differentiator','partial_entry_offer',
+      'sender_name','sender_company','sender_role',
       'sender_contact','sender_cta','outreach_tone','outreach_channel','draft_language',
       'draft_mode','drafts_path','source_mode','source_path','jobs_query','jobs_pages',
       'ats_provider','ats_board','ats_company','tender_type','g2b_keywords','overseas_rss_urls',
@@ -1062,6 +1075,11 @@ function buildData() {
     customer: oneLine(fd.get('customer')),
     value_proposition: oneLine(fd.get('value_proposition')),
     proof_points: oneLine(fd.get('proof_points')),
+    end_user_persona: oneLine(fd.get('end_user_persona')),
+    buyer_persona: oneLine(fd.get('buyer_persona')),
+    common_misconception: oneLine(fd.get('common_misconception')),
+    reality_differentiator: oneLine(fd.get('reality_differentiator')),
+    partial_entry_offer: oneLine(fd.get('partial_entry_offer')),
     sender_name: oneLine(fd.get('sender_name'), 200),
     sender_company: oneLine(fd.get('sender_company'), 200),
     sender_role: oneLine(fd.get('sender_role'), 200),

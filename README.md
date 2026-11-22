@@ -44,14 +44,14 @@ Mac에서는 `시작하기.command`, Windows에서는 `시작하기.bat`을 더�
 | **내 영업 직군에 맞게 세팅** | `wizard.html`, `outbound.py profile` | 10개 업종 프리셋(SaaS·HR·제조·커머스·물류·보안·핀테크·공공·해외 B2B 엔드유저·해외 대리점) |
 | **브로셔·홈페이지로 자동 세팅** | `outbound.py profile bootstrap` | 자사 브로셔(`.pptx/.docx/.pdf/.md/.png/.jpg`) + 자사/경쟁사 URL(JS 렌더링 지원) 분석 → 초기 타깃팅 전략·DNC 자동 생성 |
 | **내 메일 말투 학습** | `outbound.py profile style` | 내 발신메일함(`.mbox/.eml`/읽기 전용 IMAP)에서 인사말·분량·화법만 익명 추출(개인정보 미저장) |
-| **국내 공고·투자·입찰 발굴** | `outbound.py run`, `outbound.py g2b` | 원티드·사람인·잡코리아(이미지 OCR)·점핏·ATS·Platum/VentureSquare + **나라장터 발주계획/사전규격/입찰공고 기준선 차분 감시 & 잡음 제외** |
+| **국내 공고·투자·입찰·공공데이터** | `outbound.py run`, `outbound.py g2b`, `outbound.py lens` | 원티드·사람인·잡코리아(이미지 OCR)·점핏·ATS·Platum/VentureSquare + **나라장터 3단계 차분 감시** + **공공데이터 렌즈(9.6만 데이터셋·활용계획 무료無인증 탐색)** |
 | **LinkedIn 담당자 소싱·CRM** | `outbound.py linkedin`, `outbound.py crm` | ICP → Apify/CSV 소싱 → **초안/연락이력 분리** · **Obsidian Kanban 보드(`CRM Board.md`) 자동 동기화** · **무결성 감사(`vault audit`)** |
 | **해외 B2B 엔드유저 / 대리점 개척** | `outbound.py overseas` | 해외 최종 도입 기업(`--mode end_user`) & 현지 대리점(`--mode distributor`) 발굴·4축 채점 + 영/일/독/한 네이티브 초안 |
 | **경쟁사 역추적 · 데일리 브리핑** | `outbound.py intel`, `outbound.py briefing` | 경쟁사 사례에서 돈 쓴 문제 역추적 → 비슷한 타깃 큐 + **오늘 현황·미발송 초안·G2B·감사 데일리 브리핑** |
 | **멀티터치 시퀀스 & 쉬운 문체 검수** | `outbound.py copy` | 1~4차 시퀀스 생성 + 콜드메일 스팸어 린트 + **영업 전략문서 쉬운 한국어 문체·표 열 감사(`--mode doc`)** |
 | **답장 분류 & 수신거부 자동 차단** | `outbound.py replies` | 답장 11종 분류, 긍정 회신율 계산, 수신거부/바운스 자동 DNC 등록, `LEARNINGS.md` 누적 |
-| **미팅 브리핑 · 도메인 헬스체크** | `outbound.py meeting`, `outbound.py health` | 미팅 전 1장 브리핑, 미팅 후 리캡 초안, 발신 도메인 `MX / SPF / DKIM / DMARC` 점검 |
-| **외부 API 서비스 & Jev 점검 (선택)** | `outbound.py services`, `outbound.py jev` | Crawl4AI(무료)/Firecrawl(선택)·Apify·Webshare·TypeSafe AI Jev·Groq·Composio 점검 |
+| **미팅 브리핑 · Plaud 녹음 전사 · 도메인** | `outbound.py meeting`, `outbound.py transcribe`, `outbound.py health` | 미팅 전 1장 브리핑, **Plaud/음성 녹음 무료 Groq Whisper 전사 → 미팅 후 리캡**, 도메인 `MX/SPF/DKIM/DMARC` 점검 |
+| **API 키 관리 & 무료 도구 진단** | `outbound.py env`, `outbound.py services`, `outbound.py jev` | 숨김 입력 `.env` 안전 저장 + 무료 Crawl4AI/Playwright/tesseract 상태 진단 |
 
 ---
 
@@ -60,6 +60,10 @@ Mac에서는 `시작하기.command`, Windows에서는 `시작하기.bat`을 더�
 자세한 단계별 사용법과 예시는 **[실전 사용 매뉴얼 (한국어)](docs/MANUAL.md)**를 보세요.
 
 ```sh
+# 0) API 키 상태 및 무료 로컬 도구(Crawl4AI · tesseract) 한눈에 진단 / 안전 등록
+python3 outbound.py env status
+python3 outbound.py env set --key DATA_GO_KR_API_KEY
+
 # 1) 직군 프리셋 확인 · 초기화 · 샘플 초안 미리보기
 python3 outbound.py profile presets
 python3 outbound.py profile init --preset manufacturing-smartfactory --output setup.json --sync --force
@@ -72,9 +76,11 @@ python3 outbound.py profile bootstrap --company-url https://company.example.com 
 python3 outbound.py profile style --discover
 python3 outbound.py profile style --mbox ~/Downloads/Sent.mbox --config setup.json --apply
 
-# 4) 국내 채용·투자 실행 & 나라장터 발주계획·사전규격·입찰공고 기준선 차분 감시
+# 4) 국내 채용·투자 실행 & 나라장터 3단계 차분 감시 & 공공데이터 렌즈(무료·無인증 9.6만 데이터셋 탐색)
 python3 outbound.py run --config setup.json --home ~/.hermes-outbound --output ./output --vault ~/Documents/Hermes-GTM
 python3 outbound.py g2b --keywords "의료후송,의료지원,비상대피" --stages order_plan,prespec,bid_notice --initialize --vault ~/Documents/Hermes-GTM
+python3 outbound.py lens plan-data "제조 스마트팩토리 잠재고객 발굴을 위한 공장등록·산업단지 공공데이터 결합 계획"
+python3 outbound.py lens search "공장등록" --limit 10
 
 # 5) LinkedIn ICP -> 소싱 -> CRM Kanban 동기화 & 볼트 무결성 감사
 python3 outbound.py linkedin xray --config setup.json
@@ -82,14 +88,14 @@ python3 outbound.py linkedin run --config setup.json --contacts-file ./sales-nav
 python3 outbound.py crm knowledge --config setup.json --vault ~/Documents/Hermes-GTM
 python3 outbound.py vault audit --vault ~/Documents/Hermes-GTM
 
-# 6) 해외 B2B 엔드유저 직접 영업 / 해외 대리점 발굴 / 경쟁사 역추적
+# 6) 해외 B2B 엔드유저 직접 영업 / 해외 대리점 발굴 / 경쟁사 역추적(RSS·웹·파일)
 python3 outbound.py overseas --mode end_user --config setup.json --file ./targets.csv --country US --country DE --country JP --vault ~/Documents/Hermes-GTM
 python3 outbound.py overseas --mode distributor --config setup.json --distributor-url https://competitor.example.com/distributors --country DE --vault ~/Documents/Hermes-GTM
-python3 outbound.py intel --input ./competitor-signals.csv --competitor "GlobalCorp" --vault ~/Documents/Hermes-GTM
+python3 outbound.py intel --rss https://competitor.example.com/feed.xml --competitor "GlobalCorp" --vault ~/Documents/Hermes-GTM
 
-# 7) 쉬운 한국어 문체 감사 · 1~4차 시퀀스 · 답장 분석 · 데일리 브리핑 · 도메인 점검
+# 7) Plaud/미팅 녹음 전사 -> 리캡 · 쉬운 한국어 문체 감사 · 답장 · 데일리 브리핑 · 도메인 점검
+python3 outbound.py meeting post --company "예시기업" --attendee "김팀장" --audio-file ./meeting.mp3 --vault ~/Documents/Hermes-GTM
 python3 outbound.py copy lint --mode doc --file ~/Documents/Hermes-GTM/Knowledge/영업\ 포지셔닝.md
-python3 outbound.py copy sequence --company "예시기업" --title "데이터 엔지니어" --config setup.json
 python3 outbound.py replies --input ./replies.csv --sent 300 --apply-suppression --home ~/.hermes-outbound --vault ~/Documents/Hermes-GTM
 python3 outbound.py briefing --vault ~/Documents/Hermes-GTM --text
 python3 outbound.py health --domain example.com
@@ -110,8 +116,8 @@ hermes-outbound-kit/
 ├── src/
 │   ├── core/               # 설정·수집기·Crawl4AI/OCR(web_extract)·G2B감시·CRM보드/감사·볼트·워크플로
 │   ├── profile/            # 10종 프리셋·브로셔/웹 분석·발신함 문체 분석
-│   ├── pipelines/          # LinkedIn·해외 B2B/대리점·경쟁사 인텔·데일리 브리핑·카피 가드·답장·미팅·Jev
-│   └── setup/              # 설치기·Hermes 엔진·예약 실행(--verify)·원격 SSH 배포
+│   ├── pipelines/          # LinkedIn·해외 B2B/대리점·경쟁사 인텔·Plaud/Groq 전사·브리핑·카피·답장·미팅·Jev
+│   └── setup/              # 설치기·.env 도우미·Hermes 엔진·예약 실행(--verify)·원격 SSH 배포
 ├── pack/                   # 25개 Hermes 영업 스킬 & 10종 직군 프리셋 JSON
 ├── scripts/                # 배포 번들 생성 · 오프라인 스모크 · 개인정보 감사
 ├── docs/                   # 사용자 한국어 가이드 (내부 참고·감사 문서는 docs/reference/)
@@ -123,7 +129,7 @@ hermes-outbound-kit/
 
 ## API 키 · 무료 JS 렌더링(Crawl4AI) · 이미지 공고 인식 안내
 
-외부 서비스 키는 **모두 선택 사항**이며, 사용할 서비스의 키만 로컬 **`~/.hermes-outbound/.env`**(Windows는 `%LOCALAPPDATA%\hermes-outbound\.env`)에 넣습니다.
+외부 서비스 키는 **모두 선택 사항**이며, `python3 outbound.py env set --key <키이름>`으로 로컬 **`~/.hermes-outbound/.env`**에 안전하게 저장합니다.
 
 | 기능 / 서비스 | 권장 설정 (무료 우선) | 역할 |
 |---|---|---|

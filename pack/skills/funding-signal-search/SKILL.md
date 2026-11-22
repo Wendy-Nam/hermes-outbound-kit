@@ -22,7 +22,7 @@ metadata:
 | 채점: 지금 연락할 이유 | `outbound-scoring`의 `funding` 신호(라운드·금액·경과일) |
 
 ICP에 맞는 기업만 남기려면 `--json` 결과의 `sector`와 금액을 보고 거르거나, 키트 설정의
-`funding_keywords`(`workflow.py` 수집 흐름)를 쓴다.
+`funding_keywords`(`python3 outbound.py run --scenario funding_signal` 수집 흐름)를 쓴다.
 
 ## When to use
 - "이번 주 투자받은 회사 중 우리 타깃 뽑아줘", "최근 시리즈A 받은 SaaS 리스트"

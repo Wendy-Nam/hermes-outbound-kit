@@ -23,9 +23,9 @@ metadata:
 
 ## 기본 흐름
 
-1. 먼저 사용 가능한 프리셋을 확인한다:
+1. 먼저 사용 가능한 프리셋(10종)을 확인한다:
    ```bash
-   python3 profile.py presets
+   python3 outbound.py profile presets
    ```
    지원 프리셋:
    - `b2b-saas` (B2B SaaS · AI/데이터)
@@ -36,10 +36,12 @@ metadata:
    - `cloud-security-it` (클라우드 · 보안 · IT 인프라)
    - `fintech-finance` (핀테크 · 재무/회계 · 법인금융)
    - `public-b2g` (공공조달 B2G · 정부지원 · 용역)
+   - `overseas-b2b-direct` (해외 B2B 엔드유저 직접 영업)
+   - `overseas-distributor` (해외 대리점 · 총판 · 수입상 개척)
 
 2. 프리셋으로 새 프로필 생성 + 즉시 동기화:
    ```bash
-   python3 profile.py init \
+   python3 outbound.py profile init \
      --preset manufacturing-smartfactory \
      --product "제조 현장 AI 비전검사 솔루션" \
      --customer "생산기술·품질 인력을 채용 중인 중견 제조기업" \
@@ -48,19 +50,20 @@ metadata:
      --output setup.json --home "$HERMES_HOME" --sync --force
    ```
 
-3. 기존 설정 수정 후 `$HERMES_HOME` 동기화:
+3. 기존 설정 수정 후 `$HERMES_HOME` 동기화 & 쉬운 한국어 전략 문서 생성:
    ```bash
-   python3 profile.py sync --config setup.json --home "$HERMES_HOME" --force
+   python3 outbound.py profile sync --config setup.json --home "$HERMES_HOME" --force
+   python3 outbound.py crm knowledge --config setup.json --vault ~/Documents/Hermes-GTM
    ```
 
 4. 채점과 초안 결과를 샘플로 즉시 미리보기:
    ```bash
-   python3 profile.py preview --config setup.json --home "$HERMES_HOME"
+   python3 outbound.py profile preview --config setup.json --home "$HERMES_HOME"
    ```
 
 5. **브로셔·자사/경쟁사 홈페이지 자동 분석 → 초기 타깃팅 인사이트 + 프로필 자동 생성**:
    ```bash
-   python3 profile.py bootstrap \
+   python3 outbound.py profile bootstrap \
      --company-url https://company.example.com \
      --competitor-url https://competitor.example.com \
      --brochure ./company-brochure.pptx \
@@ -68,33 +71,27 @@ metadata:
      --insights ./Targeting-Insights.md \
      --home "$HERMES_HOME" --sync --force
    ```
-   - 지원 브로셔 형식: `.md`, `.txt`, `.html`, `.docx`, `.pptx`, `.pdf`
-   - 자동 추출 항목: 추천 영업 직군 프리셋, 제품/가치제안/검증 포인트 후보, 타깃 업종·규모·기술스택·채용 직무 키워드, 경쟁사 비교·차별화 단서, 경쟁사 자동 DNC 및 경쟁사 시그널 등록
+   - 지원 브로셔 형식: `.md`, `.txt`, `.html`, `.docx`, `.pptx`, `.pdf`, **이미지(`.png/.jpg/.webp`)**
+   - JS/SPA 홈페이지는 무료 오픈소스 Crawl4AI → Playwright → 선택 Firecrawl 순으로 자동 렌더링 폴백한다.
    - 설치된 Hermes LLM으로 심화 타깃팅 브리프까지 보강하려면 `--use-hermes` 옵션을 붙인다.
-   - TypeSafe AI Jev(`TYPESAFE_API_KEY` 또는 `JEV_API_KEY`)가 설정되어 있으면 `--use-jev`로 프리셋/톤 분류를 고속 보정할 수 있다.
 
 6. **개인 발신메일함 구조 · 톤앤매너 분석 (`writing-style.json`)**:
    ```bash
-   # 로컬 PC의 Thunderbird / Apple Mail / 다운로드 .mbox/.eml 자동 탐색
-   python3 profile.py style --discover
-
-   # 발신함(.mbox / .eml 폴더 / 텍스트·JSON·CSV) 분석 후 익명화된 스타일만 저장
-   python3 profile.py style --mbox ~/Downloads/Sent.mbox --home "$HERMES_HOME" --config setup.json --apply
-
-   # 또는 읽기 전용 IMAP(Gmail/Naver 등, 환경변수 OUTBOUND_IMAP_USER / OUTBOUND_IMAP_PASSWORD)
-   python3 profile.py style --imap-host imap.gmail.com --home "$HERMES_HOME" --config setup.json --apply
+   python3 outbound.py profile style --discover
+   python3 outbound.py profile style --mbox ~/Downloads/Sent.mbox --home "$HERMES_HOME" --config setup.json --apply
+   python3 outbound.py profile style --imap-host imap.gmail.com --home "$HERMES_HOME" --config setup.json --apply
    ```
-   - 고객 이메일·전화번호·URL 등 개인정보는 저장하지 않으며, 인사말·문단 호흡·하십시오체/해요체 비율·불릿 사용 여부·CTA 패턴만 익명화해 `$HERMES_HOME/writing-style.json`에 저장한다.
 
-7. **선택 옵션: TypeSafe AI Jev(`TYPESAFE_API_KEY` / `JEV_API_KEY`) 효율화**:
-   - `setup.json`에서 `"jev_enabled": true`(필요 시 `"jev_qa_drafts": true`)를 켜고 `$HERMES_HOME/.env`에 `TYPESAFE_API_KEY`를 저장하면,
-     대량 계정 사전 필터링·적합/긴급 채점·초안 과장/환각 검수를 고속(~100ms)·저비용으로 처리한다.
-   - 키가 없거나 장애가 나면 자동으로 로컬 규칙 채점기로 폴백한다.
+7. **API 키(.env) 안전 관리 & 무료 도구 진단**:
+   ```bash
+   python3 outbound.py env status --home "$HERMES_HOME"
+   python3 outbound.py env set --key DATA_GO_KR_API_KEY --home "$HERMES_HOME"
+   ```
 
 8. 연락 금지(DNC) 및 멀티 ATS 타깃 관리:
    ```bash
-   python3 profile.py dnc --home "$HERMES_HOME" --add "기존고객A" --add "경쟁사B"
-   python3 profile.py ats --home "$HERMES_HOME" --add "greeting:myboard:타깃회사"
+   python3 outbound.py profile dnc --home "$HERMES_HOME" --add "기존고객A" --add "경쟁사B"
+   python3 outbound.py profile ats --home "$HERMES_HOME" --add "greeting:myboard:타깃회사"
    ```
 
 ## 안전 규칙
