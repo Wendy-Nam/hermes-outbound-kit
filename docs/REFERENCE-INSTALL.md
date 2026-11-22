@@ -86,10 +86,10 @@ remote selection
 
 | 시나리오 | sample | file | live | 결과 게이트 |
 |---|---:|---:|---:|---|
-| 채용 신호 | 구현 | CSV/JSON 구현 | 공개 Greenhouse/Lever/Ashby 한 board 구현 | evidence와 회사 식별 후 review |
-| 투자 신호 | 구현 | typed CSV/JSON 구현 | bounded Platum WordPress 후보 구현 | candidate 회사/금액 확인 후 review |
-| 입찰 모니터링 | 구현 | typed CSV/JSON 구현 | 미구현 | 공식 export 사용; 미지원 live는 명시 실패 |
-| 해외 파트너 | 구현 | typed CSV/JSON 구현 | 미구현 | 공식 export 사용; 미지원 live는 명시 실패 |
+| 채용 신호 | 구현 | CSV/JSON 구현 | 원티드(상세 JD)·사람인·잡코리아·점핏·Greenhouse/Lever/Ashby/Greeting 멀티 보드 구현 | evidence와 회사 식별·2축 채점 후 review |
+| 투자 신호 | 구현 | typed CSV/JSON 구현 | Platum·VentureSquare 공개 WordPress + 원티드 채용 보강 구현 | candidate 회사/금액 확인 후 review |
+| 입찰 모니터링 | 구현 | typed CSV/JSON 구현 | 나라장터(G2B) 공공데이터 OpenAPI(`DATA_GO_KR_API_KEY`) 구현 | 키 미설정 시 명시 실패 및 file 모드 안내 |
+| 해외 파트너 | 구현 | typed CSV/JSON 구현 | 공개 RSS/글로벌 ATS + `distributor_finder.py`(엔드유저/대리점) 구현 | 국가·품목 근거 확인 후 review |
 
 현재 구현은 초안까지만 간다. `template`은 규칙 기반이며 AI 생성이라고 부르지 않는다. `hermes`는
 전용 home의 launcher로 실제 응답을 받은 경우에만 모델 초안이고, 어느 모드도 발송하지 않는다.

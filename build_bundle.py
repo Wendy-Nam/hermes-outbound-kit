@@ -10,7 +10,7 @@ files = ['README.md', 'VALIDATION.md', 'LICENSE', 'kit.py', 'wizard.html',
          'setup.example.json', '시작하기.command', '시작하기.bat', 'build_bundle.py',
          'sources.py', 'services.py', 'runtime_connect.py', 'vault_flow.py', 'installer.py', 'server_access.py',
          'engine_bootstrap.py', 'omh_setup.py', 'omniroute_setup.py']
-files += ['paths.py', 'workflow.py', 'runtime_connect.py', 'docs_support.py',
+files += ['paths.py', 'workflow.py', 'docs_support.py',
           'operations.py', 'vault_sync.py', 'support.py', 'start.py',
           'profile.py', 'profile_presets.py', 'profile_bootstrap.py',
           'style_analyzer.py', 'jev_client.py',

@@ -12,9 +12,10 @@ description: 제품·국가·파트너 유형을 확인해 해외 파트너 후�
 
 ## 단계별 실행
 
-1. 키트의 현재 `workflow.py --help`, `docs/OBSIDIAN.md`와 설치 지원 스킬을 확인합니다.
-   `overseas_partner`의 live 자동 수집은 아직 구현되지 않았습니다. 조사 도구가 없으면 후보
-   CSV/JSON을 요청합니다. 샘플을 실제 발굴 결과처럼 보여 주지 않습니다.
+1. 키트의 `workflow.py --help`, `distributor_finder.py --help`, `docs/MANUAL.md`를 확인합니다.
+   `overseas_partner`는 공개 RSS 피드·글로벌 ATS live 수집과 CSV/JSON file 모드를 모두 지원하며,
+   해외 B2B 엔드유저 직접 영업(`--mode end_user`) 및 대리점 발굴(`--mode distributor`)은 `distributor_finder.py`로 실행합니다.
+   샘플을 실제 발굴 결과처럼 보여 주지 않습니다.
 2. 사용 가능한 승인된 웹 도구로 공식 기업 사이트, 제조사의 공개 대리점 목록, 전시회 공개
    참가사 목록, KOTRA·tradeKorea 공개 디렉토리를 조사합니다. 로그인·CAPTCHA는 우회하지 않습니다.
    ImportYeti/FDA/EUDAMED 등은 제품·국가에 맞고 접근 가능한 경우에만 보조 근거로 사용합니다.
