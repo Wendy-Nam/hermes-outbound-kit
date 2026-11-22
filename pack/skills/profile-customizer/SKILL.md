@@ -23,6 +23,14 @@ metadata:
 
 ## 기본 흐름
 
+0. **볼트 지식베이스 먼저 읽기** (`outbound` 스킬 절차 준수):
+   프로필(`setup.json`)·채점 가중치·DNC를 고치기 전에 볼트의 아래 문서를 먼저 읽어 반영할 항목을 정리하고, 없는 항목만 사용자에게 확인한다.
+   - `Knowledge/먼저 공략할 고객과 피할 고객.md` → 회사 필수/가점/제외 조건, `do-not-contact.txt`(DNC) 후보
+   - `Knowledge/영업 포지셔닝.md` → 구매 결정자 vs 실제 사용자 구분 → 목표 직무·제외 직무·제안 내용
+   - `Knowledge/경쟁사 비교와 영업 판단.md` → 승산 낮은 상황 제외, 시도해볼 만한 상황 가점, 소싱 키워드
+   - `GTM/LEARNINGS.md` · `GTM/.learnings.json` → 신호 우선순위(가중치 조정 제안은 답장 20건 이상 쌓인 신호만)
+   - `Accounts/` · `LinkedIn/` 사람 메모 → 실제 미팅까지 간 회사의 공통점
+
 1. 먼저 사용 가능한 프리셋(10종)을 확인한다:
    ```bash
    python3 outbound.py profile presets
