@@ -1,0 +1,64 @@
+{
+  "id": "manufacturing-smartfactory",
+  "order": 3,
+  "name": "제조 · 스마트팩토리 · 산업장비 영업",
+  "tagline": "비전검사, MES/ERP, 공정자동화, 로봇, 산업장비·부품 B2B 영업",
+  "description": "생산기술·품질관리·설비·자동화 인력을 채용하거나 공장 증설/투자 소식이 있는 제조·소부장 기업을 발굴합니다.",
+  "default_scenario": "job_signal",
+  "default_workflows": ["jobs", "funding"],
+  "default_jobs_providers": ["saramin", "jobkorea", "wanted"],
+  "product_example": "제조 라인용 AI 비전검사·불량 검출 및 공정 이력 관리 솔루션",
+  "customer_example": "생산기술·품질관리·설비자동화 인력을 채용 중인 중견·중소 제조기업",
+  "value_proposition": "육안 검사 편차와 불량 유출을 줄이고 라인별 품질 이력을 자동 집계합니다",
+  "proof_points": "불량 샘플 이미지만 주시면 기존 라인 변경 없이 적용 가능한지 먼저 테스트 결과를 보내드릴 수 있습니다",
+  "keywords": "제조, 스마트팩토리, 공장, 자동화, 반도체, 2차전지, 자동차부품, 로봇, 정밀, 소부장",
+  "job_keywords": "생산기술, 품질관리, QA, QC, 공정기술, 설비보전, PLC, 비전검사, 스마트팩토리, 자동화",
+  "funding_keywords": "제조, 로보틱스, 공장, 증설, 스마트팩토리, 배터리, 반도체",
+  "jobs_query": "생산기술, 스마트팩토리, 품질관리",
+  "region": "경기, 인천, 화성, 평택, 천안, 충남, 경북, 경남, 부산",
+  "exclude_keywords": "아르바이트, 단순노무, 일용직, 인턴",
+  "outreach": {
+    "language": "ko",
+    "tone": "formal",
+    "channel": "email",
+    "cta": "현장 검사 자동화 담당자분이 맞으신지 확인 부탁드립니다. 필요하실 때만 1장 요약 자료 전달드리겠습니다.",
+    "hook_templates": {
+      "job_posting": "「{title}」 채용 공고 보고 문의드립니다.",
+      "funding_signal": "「{title}」 소식 보고 문의드립니다."
+    }
+  },
+  "scoring": {
+    "cutoff": {"call_now": 68, "nurture": 45, "min_coverage": 0.4},
+    "fit": {
+      "weights": {"revenue_model": 15, "industry": 40, "size": 25, "tech_stack": 20},
+      "revenue_model_bands": [
+        ["제조|양산|부품|장비|소부장|OEM|ODM|수출|B2B", 1.0],
+        ["로보틱스|자동화|솔루션|엔지니어링", 0.85],
+        ["유통|도매|건설", 0.5]
+      ],
+      "industry_bands": [
+        ["제조|반도체|2차전지|배터리|자동차|전장|정밀|기계|로보틱스|디스플레이|소부장|바이오생산|식품제조", 1.0],
+        ["물류|에너지|화학|금속|플라스틱|의료기기|전자", 0.8],
+        ["소프트웨어|IT|SaaS", 0.4]
+      ],
+      "size_bands": [
+        ["상장|코스피|코스닥|중견기업|대기업|[3-9][0-9]{2}명|[1-9][0-9]{3,}명", 1.0],
+        ["시리즈\\s*[BC]|강소기업|[5-9][0-9]명|1[0-9]{2}명|2[0-9]{2}명", 0.85],
+        ["시리즈\\s*A|중소기업|[2-4][0-9]명", 0.65]
+      ],
+      "tech_stack_bands": [
+        ["MES|ERP|SAP|PLC|SCADA|OpenCV|Halcon|Cognex|Vision|ROS|CAD|AutoCAD|SolidWorks", 1.0],
+        ["Python|C\\+\\+|C#|LabVIEW|MQTT|OPC-UA|IoT|센서", 0.8],
+        ["엑셀|수기|온프레미스", 0.5]
+      ]
+    },
+    "urgency": {
+      "weights": {"exec_signal": 20, "funding": 20, "hiring": 35, "event_signal": 15, "competitor": 10},
+      "hiring_bands": [
+        ["비전|스마트팩토리|공정자동화|PLC|생산기술|품질관리|품질보증|설비기술|로봇", 1.0],
+        ["QA|QC|생산관리|제조기술|공장장|설비보전|MES", 0.8],
+        ["엔지니어|기술영업|연구원", 0.45]
+      ]
+    }
+  }
+}

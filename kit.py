@@ -16,6 +16,8 @@ import urllib.request
 import webbrowser
 import paths
 
+import profile_presets
+
 ROOT = Path(__file__).resolve().parent
 FIELDS = {'version', 'target', 'channel', 'telegram_owner', 'discord_owner',
           'product', 'customer', 'keywords', 'services', 'workflows', 'job_keywords',
@@ -29,18 +31,29 @@ FIELDS = {'version', 'target', 'channel', 'telegram_owner', 'discord_owner',
           'vault_collision_policy', 'review_human_approval', 'review_terms_costs',
           'review_no_secrets', 'webshare_policy_ack', 'apify_cost_ack', 'composio_scope_ack',
           'omniroute_enabled', 'omh_enabled', 'scenario', 'source_mode', 'source_path',
-          'ats_provider', 'ats_board', 'ats_company', 'jobs_provider', 'jobs_query',
+          'ats_provider', 'ats_board', 'ats_company', 'ats_targets_path',
+          'jobs_provider', 'jobs_providers', 'jobs_query', 'jobs_pages',
+          'jobs_fetch_details', 'jobs_partial_ok', 'funding_enrich_hiring',
+          'tender_type', 'g2b_keywords', 'overseas_rss_urls',
+          'sales_preset', 'value_proposition', 'proof_points',
+          'outreach_tone', 'outreach_channel',
+          'sender_name', 'sender_company', 'sender_role', 'sender_contact', 'sender_cta',
+          'do_not_contact', 'scoring_profile',
+          'jev_enabled', 'jev_model', 'jev_min_relevance', 'jev_qa_drafts',
           'campaign_name', 'draft_language',
           'draft_mode', 'desktop_mode', 'schedule_enabled', 'schedule_frequency',
           'schedule_time', 'timezone', 'output_path', 'gateway_enabled',
           'service_apply_enabled', 'routing_bindings_path', 'drafts_path'}
-CHOICES = {'services': {'webshare', 'groq', 'apify', 'composio'},
-           'workflows': {'jobs', 'funding', 'tenders', 'overseas'}}
+CHOICES = {'services': {'webshare', 'groq', 'apify', 'composio', 'jev'},
+           'workflows': {'jobs', 'funding', 'tenders', 'overseas'},
+           'jobs_providers': {'wanted', 'saramin', 'jobkorea', 'jumpit', 'ats', 'ats_batch', 'greeting'}}
 BOOL_FIELDS = {'discord_message_content_intent', 'groq_audio_consent',
                'vault_existing_approved', 'review_human_approval',
                'review_terms_costs', 'review_no_secrets', 'webshare_policy_ack',
                'apify_cost_ack', 'composio_scope_ack', 'omniroute_enabled', 'omh_enabled',
-               'schedule_enabled', 'gateway_enabled', 'service_apply_enabled'}
+               'schedule_enabled', 'gateway_enabled', 'service_apply_enabled',
+               'jobs_fetch_details', 'jobs_partial_ok', 'funding_enrich_hiring',
+               'jev_enabled', 'jev_qa_drafts'}
 ENUM_FIELDS = {'install_location': {'local', 'remote'},
                'os_hint': {'auto', 'macos', 'windows', 'linux'},
                'runtime_mode': {'native', 'wsl2'},
@@ -50,12 +63,51 @@ ENUM_FIELDS = {'install_location': {'local', 'remote'},
                'vault_collision_policy': {'preview_stop'},
                'scenario': {'job_signal', 'funding_signal', 'tender_watch', 'overseas_partner'},
                'source_mode': {'sample', 'file', 'live'},
-               'ats_provider': {'', 'greenhouse', 'lever', 'ashby'},
-               'jobs_provider': {'', 'ats', 'wanted', 'saramin', 'both'},
+               'ats_provider': {'', 'greenhouse', 'lever', 'ashby', 'greeting'},
+               'jobs_provider': {'', 'ats', 'ats_batch', 'wanted', 'saramin', 'jobkorea',
+                                 'jumpit', 'greeting', 'both', 'multi', 'all'},
                'draft_mode': {'template', 'hermes', 'provided'},
                'draft_language': {'ko', 'en'},
+               'outreach_tone': {'', 'formal', 'consultative', 'concise', 'friendly'},
+               'outreach_channel': {'', 'email', 'linkedin', 'call'},
+               'tender_type': {'', 'all', 'servc', 'thng', 'cnstwk', 'frgcpt'},
                'desktop_mode': {'app', 'terminal'},
                'schedule_frequency': {'daily', 'hourly'}}
+SCORING_PROFILE_KEYS = {
+    'cutoff', 'fit_weights', 'urgency_weights',
+    'industry_tiers', 'tech_stack_tiers', 'revenue_model_tiers',
+    'size_tiers', 'hiring_tiers', 'exec_tiers', 'competitor_tiers',
+}
+
+
+def _validate_scoring_profile(sp):
+    if not isinstance(sp, dict) or set(sp) - SCORING_PROFILE_KEYS:
+        raise ValueError('scoring_profile: 지원하지 않는 채점 설정 항목이 포함되어 있습니다.')
+    if 'cutoff' in sp:
+        cutoff = sp['cutoff']
+        if not isinstance(cutoff, dict) or set(cutoff) - {'call_now', 'nurture', 'min_coverage'}:
+            raise ValueError('scoring_profile.cutoff 형식이 잘못되었습니다.')
+        for k in ('call_now', 'nurture'):
+            if k in cutoff and (not isinstance(cutoff[k], (int, float)) or isinstance(cutoff[k], bool) or not 0 <= cutoff[k] <= 100):
+                raise ValueError(f'scoring_profile.cutoff.{k}: 0~100 숫자가 필요합니다.')
+        if 'min_coverage' in cutoff:
+            mc = cutoff['min_coverage']
+            if not isinstance(mc, (int, float)) or isinstance(mc, bool) or not 0 <= mc <= 1:
+                raise ValueError('scoring_profile.cutoff.min_coverage: 0~1 사이 숫자가 필요합니다.')
+    for wkey, allowed in (('fit_weights', {'revenue_model', 'industry', 'size', 'tech_stack'}),
+                          ('urgency_weights', {'exec_signal', 'funding', 'hiring', 'event_signal', 'competitor'})):
+        if wkey in sp:
+            weights = sp[wkey]
+            if not isinstance(weights, dict) or set(weights) - allowed:
+                raise ValueError(f'scoring_profile.{wkey}: 지원하지 않는 축 이름입니다.')
+            for k, v in weights.items():
+                if not isinstance(v, (int, float)) or isinstance(v, bool) or not 0 <= v <= 100:
+                    raise ValueError(f'scoring_profile.{wkey}.{k}: 0~100 숫자가 필요합니다.')
+    for tkey in SCORING_PROFILE_KEYS - {'cutoff', 'fit_weights', 'urgency_weights'}:
+        if tkey in sp:
+            val = sp[tkey]
+            if not isinstance(val, (dict, list)):
+                raise ValueError(f'scoring_profile.{tkey}: dict 또는 list가 필요합니다.')
 
 
 def validate(data):
@@ -79,12 +131,32 @@ def validate(data):
     for key, choices in ENUM_FIELDS.items():
         if key in data and (not isinstance(data[key], str) or data[key] not in choices):
             raise ValueError(f'{key}: 지원하지 않는 선택입니다.')
+    if 'sales_preset' in data and data['sales_preset']:
+        preset_val = data['sales_preset']
+        allowed_presets = {'custom', *profile_presets.preset_ids()}
+        if not isinstance(preset_val, str) or preset_val not in allowed_presets:
+            raise ValueError(f'sales_preset: 지원하지 않는 프리셋입니다 ({preset_val}).')
     if 'server_port' in data and (type(data['server_port']) is not int or not 1 <= data['server_port'] <= 65535):
         raise ValueError('server_port: 1~65535 숫자가 필요합니다.')
+    if 'jobs_pages' in data and (type(data['jobs_pages']) is not int or not 1 <= data['jobs_pages'] <= 5):
+        raise ValueError('jobs_pages: 1~5 정수가 필요합니다.')
+    if 'jev_min_relevance' in data:
+        jmr = data['jev_min_relevance']
+        if not isinstance(jmr, (int, float)) or isinstance(jmr, bool) or not 0 <= jmr <= 1:
+            raise ValueError('jev_min_relevance: 0~1 사이 숫자가 필요합니다.')
     apps = data.get('composio_apps', [])
     if not isinstance(apps, list) or len(apps) > 20 or any(not isinstance(s, str) or not re.fullmatch(r'[A-Za-z0-9 _-]{1,60}', s) for s in apps):
         raise ValueError('composio_apps: 앱 이름 목록만 허용합니다.')
-    for key in FIELDS - {'version', *CHOICES, *BOOL_FIELDS, 'server_port', 'composio_apps'}:
+    dnc = data.get('do_not_contact', [])
+    if not isinstance(dnc, list) or len(dnc) > 500 or any(
+        not isinstance(s, str) or len(s) > 200 or any(ord(c) < 32 for c in s) for s in dnc
+    ):
+        raise ValueError('do_not_contact: 회사명 문자열 목록(최대 500개)만 허용합니다.')
+    if 'scoring_profile' in data and data['scoring_profile'] is not None:
+        _validate_scoring_profile(data['scoring_profile'])
+    non_string_fields = {'version', *CHOICES, *BOOL_FIELDS, 'server_port', 'jobs_pages',
+                         'jev_min_relevance', 'composio_apps', 'do_not_contact', 'scoring_profile'}
+    for key in FIELDS - non_string_fields:
         value = data.get(key, '')
         if not isinstance(value, str) or len(value) > 1000 or any(ord(c) < 32 for c in value):
             raise ValueError(f'{key}: 한 줄 텍스트만 입력하세요 (1000자 이하).')
@@ -111,24 +183,31 @@ def validate(data):
     if data.get('source_mode') == 'file' and Path(data['source_path']).suffix.lower() not in {'.csv','.json'}:
         raise ValueError('자료 파일은 CSV 또는 JSON으로 선택해주세요.')
     jobs_provider = data.get('jobs_provider', '')
+    jobs_providers = data.get('jobs_providers', [])
     jobs_query = data.get('jobs_query', '').strip()
     live_jobs = data.get('scenario') == 'job_signal' and data.get('source_mode') == 'live'
-    if (jobs_provider or jobs_query) and not live_jobs:
-        raise ValueError('채용 사이트 선택과 검색어는 채용 신호의 실시간 자료에서만 사용합니다.')
+    if len(jobs_query) > 200:
+        raise ValueError('채용 사이트 검색어는 200자 이하로 입력해주세요.')
     if live_jobs:
-        # Existing profiles with ATS fields remain readable; newly generated
-        # profiles always make the source choice explicit.
-        effective_provider = jobs_provider or ('ats' if data.get('ats_provider') else '')
-        if effective_provider not in {'ats', 'wanted', 'saramin', 'both'}:
+        effective_providers = list(jobs_providers) if jobs_providers else []
+        if not effective_providers:
+            if jobs_provider == 'both':
+                effective_providers = ['wanted', 'saramin']
+            elif jobs_provider == 'all':
+                effective_providers = ['wanted', 'saramin', 'jobkorea', 'jumpit']
+            elif jobs_provider and jobs_provider != 'multi':
+                effective_providers = [jobs_provider]
+            elif data.get('ats_provider'):
+                effective_providers = ['ats']
+        if not effective_providers:
             raise ValueError('실시간 채용 신호에 사용할 공개 채용 사이트를 선택해주세요.')
-        if effective_provider == 'ats':
+        if 'ats' in effective_providers:
             if (not data.get('ats_provider') or not data.get('ats_board', '').strip()
                     or not data.get('ats_company', '').strip()):
-                raise ValueError('ATS 조회에는 게시판 종류, 공개 식별자, 회사 이름이 필요합니다.')
-        elif not jobs_query:
-            raise ValueError('원티드/사람인 조회에는 직무·기술 검색어가 필요합니다.')
-        if len(jobs_query) > 200:
-            raise ValueError('채용 사이트 검색어는 200자 이하로 입력해주세요.')
+                raise ValueError('단일 ATS 조회에는 게시판 종류, 공개 식별자, 회사 이름이 필요합니다.')
+        search_boards = {'wanted', 'saramin', 'jobkorea', 'jumpit'}
+        if any(p in search_boards for p in effective_providers) and not jobs_query:
+            raise ValueError('원티드/사람인/잡코리아/점핏 조회에는 직무·기술 검색어(jobs_query)가 필요합니다.')
     if data.get('draft_mode') == 'provided' and not data.get('drafts_path', '').strip():
         raise ValueError('작성한 AI 초안을 가져오려면 drafts_path에 JSON 파일을 지정해주세요.')
     if data.get('install_location') == 'remote' and data.get('desktop_mode') == 'app':
@@ -153,7 +232,7 @@ def load(path):
     return validate(json.loads(Path(path).read_text(encoding='utf-8-sig')))
 
 
-def preserve_write(path, text):
+def preserve_write(path, text, *, private=False):
     """Create only or verify identical content; never overwrite user changes."""
     path = Path(path)
     if path.is_symlink():
@@ -165,37 +244,68 @@ def preserve_write(path, text):
         return
     with path.open('x', encoding='utf-8') as stream:
         stream.write(text)
+    if private and os.name == 'posix':
+        os.chmod(path, 0o600)
 
 
 def _seed_sales_profile(data, home):
-    """설치 답변(고객·키워드·채용 키워드)으로 사용자용 채점 기준을 처음 한 번 만든다. 이미 있으면 건드리지 않는다."""
+    """설치 답변과 직군 프리셋으로 사용자용 채점 기준(sales-profile.json)을 처음 한 번 만든다."""
     target = home / 'sales-profile.json'
-    source = ROOT / 'pack' / 'skills' / 'outbound-scoring' / 'sales-profile.json'
+    if target.exists():
+        return
+    profile = profile_presets.compile_sales_profile(data, home)
+    profile.setdefault('_설명', []).append(
+        '설치 답변(프리셋·keywords·job_keywords·scoring_profile)으로 자동 생성했다. 자유롭게 고쳐도 재설치 때 덮지 않는다.'
+    )
+    preserve_write(target, json.dumps(profile, ensure_ascii=False, indent=2) + '\n', private=True)
+
+
+def _seed_sender_profile(data, home):
+    """발신자 프로필 필드가 있으면 sender-profile.json을 처음 한 번 생성한다."""
+    target = home / 'sender-profile.json'
+    if target.exists():
+        return
+    sender = {
+        'name': data.get('sender_name') or '',
+        'company': data.get('sender_company') or '',
+        'role': data.get('sender_role') or '',
+        'contact': data.get('sender_contact') or '',
+        'cta': data.get('sender_cta') or '',
+        'tone': data.get('outreach_tone') or 'consultative',
+        'channel': data.get('outreach_channel') or 'email',
+        'value_proposition': data.get('value_proposition') or '',
+        'proof_points': data.get('proof_points') or '',
+    }
+    if any(sender[k] for k in ('name', 'company', 'contact', 'cta', 'value_proposition')):
+        preserve_write(target, json.dumps(sender, ensure_ascii=False, indent=2) + '\n', private=True)
+
+
+def _seed_dnc(data, home):
+    """연락 금지 목록(do_not_contact)이 있으면 do-not-contact.txt를 처음 한 번 생성한다."""
+    target = home / 'do-not-contact.txt'
+    dnc = [item.strip() for item in (data.get('do_not_contact') or []) if isinstance(item, str) and item.strip()]
+    if target.exists() or not dnc:
+        return
+    header = '# 연락 금지(Do-Not-Contact) 회사 목록 — 한 줄에 한 회사\n'
+    preserve_write(target, header + '\n'.join(dict.fromkeys(dnc)) + '\n', private=True)
+
+
+def _seed_ats_targets(home):
+    """사용자 수정용 ats-targets.json 사본을 $HERMES_HOME에 처음 한 번 복사한다."""
+    target = home / 'ats-targets.json'
+    source = ROOT / 'pack' / 'skills' / 'ats-search' / 'data' / 'ats-targets.json'
     if target.exists() or not source.exists():
         return
-    profile = json.loads(source.read_text(encoding='utf-8'))
-    def terms(*values):
-        found = []
-        for value in values:
-            for term in re.split(r'[,;/|]+', value or ''):
-                term = term.strip()
-                if len(term) >= 2 and term not in found:
-                    found.append(term)
-        return '|'.join(re.escape(t) for t in found[:12])
-    icp = terms(data.get('keywords'), data.get('customer'))
-    if icp:
-        profile['fit']['industry_bands'].insert(0, [icp, 1.0])
-    roles = terms(data.get('job_keywords'))
-    if roles:
-        profile['urgency']['hiring_bands'].insert(0, [roles, 1.0])
-    profile['_설명'].append('설치 답변(keywords·customer·job_keywords)으로 첫 줄을 자동 추가했다. 자유롭게 고쳐도 재설치 때 덮지 않는다.')
-    preserve_write(target, json.dumps(profile, ensure_ascii=False, indent=2) + '\n')
+    preserve_write(target, source.read_text(encoding='utf-8'), private=True)
 
 
 def install(data, home):
     home = Path(home).expanduser().absolute()
     if any(p.is_symlink() for p in (home, *home.parents)):
         raise ValueError('설치 경로에 심볼릭 링크가 있습니다.')
+    home.mkdir(parents=True, exist_ok=True)
+    if os.name == 'posix':
+        os.chmod(home, 0o700)
     managed = {home / 'outbound-profile.json': json.dumps(data, ensure_ascii=False, indent=2) + '\n'}
     for src in sorted((ROOT / 'pack').rglob('*')):
         if src.is_file() and '__pycache__' not in src.parts and src.suffix != '.pyc':
@@ -206,8 +316,11 @@ def install(data, home):
         if path.exists() and path.read_text(encoding='utf-8') != content:
             raise ValueError(f'기존 변경을 보존했습니다: {path}')
     for path, content in managed.items():
-        preserve_write(path, content)
+        preserve_write(path, content, private=(path.name == 'outbound-profile.json'))
     _seed_sales_profile(data, home)
+    _seed_sender_profile(data, home)
+    _seed_dnc(data, home)
+    _seed_ats_targets(home)
     print('스킬 팩 설치 완료. 모델/채널 연결은 아직 별도 확인이 필요합니다.')
 
 

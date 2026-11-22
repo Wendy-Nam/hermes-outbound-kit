@@ -36,6 +36,10 @@ ROOT = Path(__file__).resolve().parent
 def tool_fingerprint():
     digest = hashlib.sha256()
     for name in ('installer.py', 'kit.py', 'paths.py', 'workflow.py', 'support.py',
+                 'profile.py', 'profile_presets.py', 'profile_bootstrap.py',
+                 'style_analyzer.py', 'jev_client.py',
+                 'copy_guard.py', 'linkedin_outbound.py', 'distributor_finder.py',
+                 'reply_tracker.py', 'meeting_and_health.py',
                  'engine_bootstrap.py', 'omh_setup.py', 'omniroute_setup.py',
                  'services.py', 'runtime_connect.py', 'operations.py', 'vault_sync.py',
                  'docs_support.py'):

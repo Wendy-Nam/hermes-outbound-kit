@@ -65,6 +65,13 @@ SERVICES = {
         ("MCP discovery does not authorize Gmail, calendar, CRM, or sending.",
          "OAuth approval and each app capability require separate browser checks."),
     ),
+    "jev": ServiceSpec(
+        "jev", "TypeSafe AI Jev (System One)", ("TYPESAFE_API_KEY",),
+        "https://console.typesafe.ai/",
+        ("Optional fast structured scoring, pre-screening, and draft QA accelerator",),
+        ("Authentication checks /v1/models only; actual System One evaluation runs only when jev_enabled=true.",
+         "Falls back cleanly to local deterministic scoring if disabled or unavailable."),
+    ),
 }
 
 
@@ -73,12 +80,14 @@ ENDPOINTS = {
     "groq": "https://api.groq.com/openai/v1/models",
     "apify": "https://api.apify.com/v2/users/me",
     "composio": "https://connect.composio.dev/mcp",
+    "jev": "https://api.typesafe.ai/v1/models",
 }
 ALLOWED_ORIGINS = {
     "https://proxy.webshare.io",
     "https://api.groq.com",
     "https://api.apify.com",
     "https://connect.composio.dev",
+    "https://api.typesafe.ai",
 }
 
 
@@ -245,6 +254,9 @@ def probe(service: str, secret: str, *, opener=None) -> dict:
             if service == "webshare" and not (
                     isinstance(body.get("results"), list) or isinstance(body.get("count"), int)):
                 raise ServiceError("Webshare 프록시 목록 응답이 없습니다.")
+            if service == "jev" and not (
+                    isinstance(body.get("data"), list) or isinstance(body.get("models"), list)):
+                raise ServiceError("TypeSafe Jev 모델 목록 응답이 없습니다.")
         return {
             "service": service,
             "auth_valid": True,

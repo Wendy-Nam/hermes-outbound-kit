@@ -12,6 +12,10 @@ files = ['README.md', 'VALIDATION.md', 'LICENSE', 'kit.py', 'wizard.html',
          'engine_bootstrap.py', 'omh_setup.py', 'omniroute_setup.py']
 files += ['paths.py', 'workflow.py', 'runtime_connect.py', 'docs_support.py',
           'operations.py', 'vault_sync.py', 'support.py', 'start.py',
+          'profile.py', 'profile_presets.py', 'profile_bootstrap.py',
+          'style_analyzer.py', 'jev_client.py',
+          'copy_guard.py', 'linkedin_outbound.py', 'distributor_finder.py',
+          'reply_tracker.py', 'meeting_and_health.py',
           'bootstrap.command', 'bootstrap.ps1', 'test_bot.py', 'local_smoke.py',
           'privacy_audit.py', 'public_data_lens.py']
 # pack/ is a curated skill tree: ship every file (scripts, data, third-party LICENSE files).

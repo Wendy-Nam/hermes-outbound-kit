@@ -1,0 +1,63 @@
+{
+  "id": "logistics-trade",
+  "order": 5,
+  "name": "물류 · 수출입 · SCM · 해외영업",
+  "tagline": "국제물류/포워딩, 풀필먼트/3PL, 통관·무역 SaaS, 해외 판로/유통 파트너 영업",
+  "description": "해외영업·수출입·SCM·물류관리 인력을 채용 중이거나 해외 진출·글로벌 물동량 확대 신호가 있는 기업을 찾습니다.",
+  "default_scenario": "job_signal",
+  "default_workflows": ["jobs", "overseas"],
+  "default_jobs_providers": ["saramin", "jobkorea", "wanted"],
+  "product_example": "수출입 포워딩·통관 리드타임 단축 및 해외 풀필먼트 운영 서비스",
+  "customer_example": "해외영업·수출입·SCM·물류 담당자를 채용 중인 제조·뷰티·커머스 수출 기업",
+  "value_proposition": "수출입 포워딩·통관과 해외 풀필먼트 리드타임 관리를 지원하고 있습니다",
+  "proof_points": "주력 노선만 알려주시면 참고용 운임·리드타임 비교표 1장을 바로 보내드릴 수 있습니다",
+  "keywords": "수출, 해외영업, 물류, SCM, 무역, 포워딩, 3PL, 풀필먼트, 글로벌, 유통",
+  "job_keywords": "해외영업, 수출입, 무역사무, SCM, 물류관리, 구매, 포워딩, 글로벌 커머스",
+  "funding_keywords": "글로벌 진출, 해외, 수출, 물류, 커머스, 제조",
+  "jobs_query": "해외영업, 수출입, SCM",
+  "region": "서울, 경기, 인천, 부산",
+  "exclude_keywords": "배송기사, 지입, 상하차, 아르바이트, 인턴",
+  "outreach": {
+    "language": "ko",
+    "tone": "formal",
+    "channel": "email",
+    "cta": "지금 비교 견적이 필요하실 때만 주요 노선 한 줄로 회신 주시면 비교표 전달드리겠습니다.",
+    "hook_templates": {
+      "job_posting": "「{title}」 채용 공고 보고 문의드립니다.",
+      "overseas_partner": "「{title}」 관련해서 짧게 문의드립니다."
+    }
+  },
+  "scoring": {
+    "cutoff": {"call_now": 68, "nurture": 45, "min_coverage": 0.4},
+    "fit": {
+      "weights": {"revenue_model": 20, "industry": 35, "size": 25, "tech_stack": 20},
+      "revenue_model_bands": [
+        ["수출|무역|제조|브랜드|D2C|도매|유통|커머스|글로벌", 1.0],
+        ["플랫폼|리테일|B2B|OEM|ODM", 0.8],
+        ["SaaS|용역", 0.4]
+      ],
+      "industry_bands": [
+        ["제조|뷰티|화장품|식품|F&B|패션|커머스|유통|의료기기|부품|무역|물류", 1.0],
+        ["이커머스|리테일|바이오|전자|기계", 0.85],
+        ["IT|소프트웨어|공공", 0.4]
+      ],
+      "size_bands": [
+        ["상장|중견|대기업|[1-9][0-9]{2}명|[1-9][0-9]{3,}명", 1.0],
+        ["시리즈\\s*[BC]|강소기업|[5-9][0-9]명", 0.85],
+        ["시리즈\\s*A|중소기업|[2-4][0-9]명", 0.7]
+      ],
+      "tech_stack_bands": [
+        ["SAP|ERP|WMS|TMS|SCM|Shopify|Amazon|아마존|큐텐|Qoo10|이카운트", 1.0],
+        ["Cafe24|더존|오라클|Oracle|엑셀", 0.75]
+      ]
+    },
+    "urgency": {
+      "weights": {"exec_signal": 20, "funding": 20, "hiring": 35, "event_signal": 15, "competitor": 10},
+      "hiring_bands": [
+        ["해외영업|수출입|무역|SCM|글로벌 물류|포워딩|통관|물류관리", 1.0],
+        ["구매|자재|풀필먼트|글로벌 마케팅|해외 사업개발|BD", 0.8],
+        ["영업|운영|관리", 0.45]
+      ]
+    }
+  }
+}

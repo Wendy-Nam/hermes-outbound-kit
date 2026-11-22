@@ -1,0 +1,63 @@
+{
+  "id": "hr-recruiting",
+  "order": 2,
+  "name": "HR · 채용 · 교육 · 기업복지 영업",
+  "tagline": "채용 솔루션(ATS), 기업교육(LMS), 복지·평가 SaaS, 헤드헌팅·HR 컨설팅 영업",
+  "description": "대규모 채용을 진행 중이거나 HR·채용담당자·조직문화 인력을 뽑고 있는 성장 기업을 발굴합니다.",
+  "default_scenario": "job_signal",
+  "default_workflows": ["jobs", "funding"],
+  "default_jobs_providers": ["wanted", "saramin", "jobkorea"],
+  "product_example": "채용 리드타임 단축·온보딩 자동화 HR 운영 솔루션",
+  "customer_example": "채용을 늘리고 있거나 HR·리크루터·HRBP를 채용 중인 50~500인 성장 기업",
+  "value_proposition": "면접 일정 조율과 신규 입사자 온보딩 수작업을 줄여 드립니다",
+  "proof_points": "비슷한 규모 팀의 짧은 운영 체크리스트 1장만 먼저 공유드릴 수 있습니다",
+  "keywords": "HR, 인사, 채용, 조직문화, 교육, L&D, 피플, 복리후생, 리크루터",
+  "job_keywords": "채용 담당자, 리크루터, HRBP, 인사담당자, 피플팀, 조직문화, 교육담당자, HRD",
+  "funding_keywords": "투자 유치, 시리즈 A, 시리즈 B, 채용 확대, 조직 확장",
+  "jobs_query": "채용 담당자, HRBP, 인사담당자",
+  "region": "서울, 경기, 판교",
+  "exclude_keywords": "아르바이트, 단기, 도급, 파견직",
+  "outreach": {
+    "language": "ko",
+    "tone": "friendly",
+    "channel": "email",
+    "cta": "지금 따로 보고 계신 시기가 아니시면 넘어가셔도 되고, 혹시 관련 자료만 필요하시면 1장 요약 보내드릴까요?",
+    "hook_templates": {
+      "job_posting": "「{title}」 공고 보고 짧게 연락드립니다.",
+      "funding_signal": "「{title}」 소식 보고 짧게 연락드립니다."
+    }
+  },
+  "scoring": {
+    "cutoff": {"call_now": 68, "nurture": 45, "min_coverage": 0.4},
+    "fit": {
+      "weights": {"revenue_model": 15, "industry": 30, "size": 35, "tech_stack": 20},
+      "revenue_model_bands": [
+        ["구독|SaaS|플랫폼|커머스|B2B|엔터프라이즈|제조|바이오", 0.9],
+        ["솔루션|서비스|에이전시|유통", 0.7]
+      ],
+      "industry_bands": [
+        ["IT|SaaS|스타트업|핀테크|커머스|바이오|AI|플랫폼|게임", 1.0],
+        ["제조|유통|물류|헬스케어|교육|미디어|컨설팅", 0.85],
+        ["건설|공공", 0.5]
+      ],
+      "size_bands": [
+        ["시리즈\\s*[BC]|스케일업|중견|[1-4][0-9]{2}명|[5-9][0-9]명", 1.0],
+        ["시리즈\\s*A|프리\\s*A|대기업|[5-9][0-9]{2}명|[1-9][0-9]{3,}명", 0.85],
+        ["시드|[2-4][0-9]명", 0.6]
+      ],
+      "tech_stack_bands": [
+        ["Greeting|그리팅|Ninehire|나인하이어|Flex|플렉스|Greenhouse|Lever|Workday|Notion|Slack", 1.0],
+        ["더존|ERP|그룹웨어|구글 워크스페이스|MS 365", 0.75],
+        ["엑셀|수기", 0.6]
+      ]
+    },
+    "urgency": {
+      "weights": {"exec_signal": 20, "funding": 25, "hiring": 35, "event_signal": 10, "competitor": 10},
+      "hiring_bands": [
+        ["채용|리크루터|TA|HRBP|인사|피플|조직문화|HRD|교육|온보딩", 1.0],
+        ["팀장|리드|매니저|헤드|총괄|경영지원", 0.75],
+        ["개발자|영업|마케팅|디자이너", 0.55]
+      ]
+    }
+  }
+}

@@ -33,4 +33,22 @@ description: 제품·국가·파트너 유형을 확인해 해외 파트너 후�
 아닙니다. 자동 DM·메일·폼 제출·CRM 등록·유료 데이터 구매는 하지 않습니다. 사용자의 내부
 매출·가격·고객 리스트를 외부 검색어에 넣지 않습니다.
 
-출력은 후보별 근거와 검토용 초안이며, `review_required=true`, `sent=false`입니다.
+## 실행 파이프라인 (`distributor_finder.py`)
+
+해외 영업은 **엔드유저 직접 B2B(`--mode end_user`, 기본값)**와 **현지 대리점·총판·수입상 개척(`--mode distributor`)** 두 가지 모드를 모두 지원한다.
+
+```bash
+# 1) 해외 B2B 엔드유저 직접 영업 (전시회 참가사/업종 디렉터리 -> 4축 채점 -> 현지어 초안 + LinkedIn 의사결정자 핸드오프)
+python3 distributor_finder.py --mode end_user \
+  --config setup.json --file ./exhibitors.csv --country US --country DE --country JP \
+  --vault ~/Documents/Hermes-GTM
+
+# 2) 해외 대리점·총판·수입상 발굴 (경쟁사 Where-to-Buy/Distributors 페이지 또는 CSV -> 대리점 4축 채점 -> EN/JA/DE/KO 초안)
+python3 distributor_finder.py --mode distributor \
+  --config setup.json --distributor-url https://competitor.example.com/distributors \
+  --country DE --country JP --competitor-brand "CompBrand" --cert CE \
+  --vault ~/Documents/Hermes-GTM
+```
+
+- 발굴된 해외 기업 리스트는 자동으로 `linkedin_handoff`(타깃 회사별 X-Ray 쿼리 + Apify People 입력)까지 생성되어 현지 의사결정자(VP/Head/Director/Plant Manager) 소싱으로 바로 이어진다.
+- 출력은 후보별 근거와 검토용 초안이며, `review_required=true`, `automatic_send=false`입니다.

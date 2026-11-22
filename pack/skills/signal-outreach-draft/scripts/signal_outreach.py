@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-"""signal-outreach-draft — 채점된 계정의 실제 신호로 GTM 콜드메일 '초안'을 만든다. 자동 발송 없음.
+"""signal-outreach-draft — 채점된 계정의 실제 신호와 영업 프로필(톤·채널·발신자)로 GTM 초안을 만든다.
 
-입력: account_score.py --json-out 출력(stdin JSON 리스트). 각 항목의 signals(투자·채용)와 판정을 쓴다.
-제품·고객: $HERMES_HOME/outbound-profile.json(키트 설치 때 생성)의 product / customer.
-발신자: $HERMES_HOME/sender-profile.json(선택, profile.example.json 참고). 없으면 자리표시자.
-
-원칙: 신호는 수집된 실제 값만 인용한다. 가설은 질문으로 쓴다. 채용·투자는 예산의 증거가 아니다.
+자동 발송 없음.
+입력: account_score.py --json-out 출력(stdin JSON 리스트).
+제품·고객·톤·채널: $HERMES_HOME/outbound-profile.json.
+발신자: $HERMES_HOME/sender-profile.json (없으면 outbound-profile.json의 sender_* 필드 폴백).
 """
 import argparse
 import json
 import os
+import re
 import sys
 
-# 볼트 기록은 account-crm 스킬의 공용 모듈을 쓴다(같은 skills 폴더에 함께 설치됨).
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "account-crm", "scripts"))
 try:
     import gtm_vault  # noqa: E402
@@ -22,8 +21,13 @@ except ImportError:
 DEFAULT_SENDER = {
     "name": "[이름]",
     "company": "[회사]",
+    "role": "",
     "contact": "[이메일]",
-    "cta": "관련이 있다면 다음 주 중 15분 정도 이야기 나눠볼 수 있을까요? 지금은 해당되지 않는다면 편하게 말씀해 주셔도 괜찮습니다.",
+    "cta": "지금 보시는 시기가 아니면 편하게 패스하셔도 되고, 필요하시면 짧은 자료 1장 보내드릴까요?",
+    "tone": "concise",
+    "channel": "email",
+    "value_proposition": "",
+    "proof_points": "",
 }
 
 
@@ -35,7 +39,6 @@ def _josa(word, with_final, without_final):
 
 
 def _key(name):
-    import re
     return re.sub(r"[^가-힣a-z0-9]", "", (name or "").lower())
 
 
@@ -47,64 +50,138 @@ def _load(path):
         return {}
 
 
-def draft(rec, product, customer, sender):
+def draft(rec, product, customer, sender, writing_style=None):
     company = rec.get("company", "")
     sig = rec.get("signals") or {}
-    funding, roles = sig.get("funding", ""), sig.get("roles") or []
-    hooks = []
-    if funding:
-        hooks.append(f"최근 {funding} 투자 유치 소식을 보았습니다. 축하드립니다.")
-    if roles:
-        hooks.append(f"지금 {', '.join(roles[:2])} 채용을 진행 중이신 것도 확인했습니다.")
-    if not hooks:
-        hooks.append("공개된 최근 소식을 보고 연락드립니다.")
-    subject = f"{company} {'투자 이후 ' if funding else ''}확장 관련 문의"
+    funding = sig.get("funding", "")
+    roles = sig.get("roles") or []
+    wstyle = writing_style or {}
+    wpat = wstyle.get("patterns") if isinstance(wstyle.get("patterns"), dict) else {}
+    tone = sender.get("tone") or wstyle.get("detected_tone") or "concise"
+    channel = sender.get("channel") or "email"
+    value_prop = (sender.get("value_proposition") or "").strip()
+    proof = (sender.get("proof_points") or "").strip()
+    cta = sender.get("cta") or wpat.get("preferred_cta") or DEFAULT_SENDER["cta"]
+
+    if funding and roles:
+        hook = f"{funding} 소식과 「{', '.join(roles[:2])}」 공고 보고 짧게 연락드립니다."
+    elif funding:
+        hook = f"{funding} 기사 보고 짧게 연락드립니다."
+    elif roles:
+        hook = f"「{', '.join(roles[:2])}」 공고 보고 짧게 연락드립니다."
+    else:
+        hook = f"{company} 공개 소식 보고 짧게 연락드립니다."
+
+    intro_role = f" {sender['role']}" if sender.get("role") else ""
+    sign_off = f"{sender['name']}{intro_role} · {sender['company']} · {sender['contact']}"
+    val_line = value_prop or f"{product}로 관련 실무를 돕고 있습니다"
+    if not val_line.endswith((".", "다", "요", "?")):
+        val_line += "."
+
+    if channel == "linkedin":
+        return "\n".join([
+            "[LinkedIn DM 초안]",
+            f"{company} 담당자님, 안녕하세요. {sender['company']} {sender['name']}입니다.",
+            hook,
+            val_line,
+            cta,
+        ])
+
+    if channel == "call":
+        return "\n".join([
+            "[콜드콜 메모 · 20초]",
+            f"1) 첫마디: 안녕하세요, {sender['company']} {sender['name']}입니다. 지금 30초만 여쭤봐도 될까요?",
+            f"2) 이유: {hook}",
+            f"3) 한 줄: {val_line}",
+            f"4) 확인: {cta}",
+        ])
+
+    if wpat.get("preferred_greeting") and wstyle.get("language", "ko") == "ko":
+        greeting = (wpat["preferred_greeting"].replace("{회사}", company).replace("{담당자}", "담당자")
+                    + f" {sender['company']} {sender['name']}{intro_role}입니다.")
+    elif tone == "formal":
+        greeting = f"{company} 담당자님, 안녕하십니까. {sender['company']} {sender['name']}{intro_role}입니다."
+    else:
+        greeting = f"{company} 담당자님, 안녕하세요. {sender['company']} {sender['name']}{intro_role}입니다."
+
+    closing = (
+        wpat["preferred_closing"]
+        if wpat.get("preferred_closing") and wstyle.get("language", "ko") == "ko"
+        else "감사합니다."
+    )
+
+    subject_focus = roles[0][:20] if roles else ("최근 소식" if funding else "짧은 확인")
+    subject = f"{company} {subject_focus} 관련 확인"
+
     lines = [
         f"제목: {subject}",
         "",
-        f"안녕하세요, {company} 담당자님. {sender['company']}의 {sender['name']}입니다.",
+        greeting,
         "",
-        " ".join(hooks) + " 조직이 커지는 시기라 새로 정비하실 일이 있지 않을까 싶었습니다.",
-        "",
-        f"저희는 {_josa(product, '을', '를')} 제공하고 있고, {_josa(customer, '과', '와')} 비슷한 상황의 팀을 돕고 있습니다. "
-        + sender["cta"],
-        "",
-        f"감사합니다.\n{sender['name']} · {sender['contact']}",
+        hook,
+        f"저희는 {product}를 만들고 있고, {val_line}",
     ]
+    if proof:
+        lines.append(proof if proof.endswith((".", "다", "요", "?")) else f"{proof}.")
+    lines.extend([
+        "",
+        cta,
+        "",
+        closing,
+        sign_off,
+        "",
+        "---",
+        "[발송 전 내 말로 바꿀 1줄 메모]",
+        f"- 타깃 고객 맥락: {customer}",
+        "- 보낼 때 위 본문 중 1줄만 상대 팀에서 실제로 본 사실로 바꿔서 보내세요.",
+    ])
     return "\n".join(lines)
 
 
 def main():
     home = os.environ.get("HERMES_HOME", "")
-    ap = argparse.ArgumentParser(description="채점된 계정별 GTM 콜드메일 초안(자동 발송 없음)")
-    ap.add_argument("--profile", default=os.path.join(home, "outbound-profile.json") if home else "outbound-profile.json",
-                    help="제품·고객 정보(키트 설치 때 생성되는 outbound-profile.json)")
-    ap.add_argument("--sender", default=os.path.join(home, "sender-profile.json") if home else "sender-profile.json",
-                    help="발신자 정보 JSON(선택)")
+    ap = argparse.ArgumentParser(description="채점된 계정별 GTM 콜드메일/DM/콜 초안(자동 발송 없음)")
+    ap.add_argument("--profile", default=os.path.join(home, "outbound-profile.json") if home else "outbound-profile.json")
+    ap.add_argument("--sender", default=os.path.join(home, "sender-profile.json") if home else "sender-profile.json")
+    ap.add_argument("--style", default=os.path.join(home, "writing-style.json") if home else "writing-style.json")
     ap.add_argument("--top", type=int, default=5)
-    ap.add_argument("--include-research", action="store_true",
-                    help="'리서치 필요' 계정도 초안 생성(기본은 지금 콜·콜 예약·너처링만)")
+    ap.add_argument("--include-research", action="store_true")
     ap.add_argument("--json", action="store_true")
-    ap.add_argument("--vault", help="Obsidian 볼트 경로(기본: 키트 설정의 볼트). GTM/Drafts에 초안 노트 저장")
-    ap.add_argument("--no-vault", action="store_true", help="볼트에 저장하지 않고 화면에만 출력")
-    ap.add_argument("--include-contacted", action="store_true",
-                    help="CRM 상태가 '발굴'이 아닌 계정(이미 접촉·진행·보류·실패)도 초안 생성")
-    ap.add_argument("--do-not-contact", default=os.path.join(home, "do-not-contact.txt") if home else "do-not-contact.txt",
-                    help="연락 금지 회사 목록(한 줄에 한 회사)")
+    ap.add_argument("--vault")
+    ap.add_argument("--no-vault", action="store_true")
+    ap.add_argument("--include-contacted", action="store_true")
+    ap.add_argument("--do-not-contact", default=os.path.join(home, "do-not-contact.txt") if home else "do-not-contact.txt")
     a = ap.parse_args()
     profile = _load(a.profile)
+    writing_style = _load(a.style)
     product = profile.get("product") or "[제품 한 줄 설명]"
     customer = profile.get("customer") or "[타깃 고객]"
-    sender = dict(DEFAULT_SENDER, **_load(a.sender))
+
+    sender_from_profile = {
+        k: v for k, v in {
+            "name": profile.get("sender_name"),
+            "company": profile.get("sender_company"),
+            "role": profile.get("sender_role"),
+            "contact": profile.get("sender_contact"),
+            "cta": profile.get("sender_cta"),
+            "tone": profile.get("outreach_tone"),
+            "channel": profile.get("outreach_channel"),
+            "value_proposition": profile.get("value_proposition"),
+            "proof_points": profile.get("proof_points"),
+        }.items() if v
+    }
+    sender_file = {k: v for k, v in _load(a.sender).items() if v}
+    sender = dict(DEFAULT_SENDER, **sender_from_profile, **sender_file)
+
     try:
         rows = json.load(sys.stdin)
     except ValueError:
         sys.exit("stdin에 account_score.py --jsonl --json-out 출력을 파이프하세요")
     allowed = {"지금 콜", "콜 예약", "너처링"} | ({"리서치 필요"} if a.include_research else set())
-    blocked = set()
+    blocked = {_key(x) for x in (profile.get("do_not_contact") or []) if isinstance(x, str) and x.strip()}
     try:
         with open(a.do_not_contact, encoding="utf-8") as fh:
-            blocked = {_key(l) for l in fh if l.strip() and not l.startswith("#")}
+            blocked |= {_key(l) for l in fh if l.strip() and not l.startswith("#")}
     except FileNotFoundError:
         pass
     vault = None if a.no_vault or not gtm_vault else gtm_vault.resolve_vault(a.vault)
@@ -126,7 +203,7 @@ def main():
         targets.append(r)
     targets = targets[:a.top]
     drafts = [{"company": r.get("company"), "action": r.get("action"),
-               "evidence": r.get("evidence") or {}, "draft": draft(r, product, customer, sender)}
+               "evidence": r.get("evidence") or {}, "draft": draft(r, product, customer, sender, writing_style=writing_style)}
               for r in targets]
     saved = []
     if vault:
@@ -152,8 +229,7 @@ def main():
     if not drafts:
         print("대상 계정이 없습니다. '리서치 필요' 계정은 prospect-research로 적합도 근거를 채운 뒤 다시 채점하세요.")
     if "[" in product or "[" in sender["name"]:
-        print(f"⚠️  자리표시자가 남아 있습니다. 제품·고객: {a.profile}, 발신자: {a.sender}"
-              " (스킬 폴더의 profile.example.json 참고)")
+        print(f"⚠️  자리표시자가 남아 있습니다. `python3 profile.py customize`로 발신자·제품 프로필을 설정할 수 있습니다.")
     return 0
 
 
