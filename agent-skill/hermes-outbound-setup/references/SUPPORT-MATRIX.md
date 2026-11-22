@@ -19,11 +19,9 @@ It is not a promise that a planned component works.
 | Linux server foreground | documented | no real service evidence | unverified |
 | background/reboot | upstream-dependent manual plan | not recorded | planned/unverified |
 | jobs/funding source adapters | `sources.py`: file import, public ATS, bounded funding | Linux synthetic/unit tests; live endpoint not recorded | implemented / fixture-tested / live-unverified |
-| Webshare/Groq/Apify/Composio optional services | `services.py` auth plus `runtime_connect.py` reviewed apply; Webshare exact-origin fetch and explicit Apify run | Linux synthetic endpoint/unit tests | implemented contracts / live-unverified / functionally unverified |
-| Obsidian Markdown flow | `vault_flow.py init/run/status` | Linux synthetic/unit tests | implemented / fixture-tested / GUI and platform-unverified |
-| OMH core | `omh_setup.py plan/install/check`, pinned OMH 2.0.5 in dedicated home | archive/layout/receipt/static smoke unit tests | implemented installer / host load, route, restart, delegated task live-unverified |
-| OMH routing | pinned public recommendation mapping plus receipt-gated apply/rollback in `omniroute_setup.py` | offline route-map/application tests | implemented / live delegated task unverified |
-| optional OmniRoute | `omniroute_setup.py plan/install/discover/connect/apply/check/rollback/routes`; local Linux Engine or macOS/Windows Docker Desktop | synthetic Linux/macOS/Windows and connector unit tests | implemented / real-platform-live-unverified / provider functionally unverified |
+| Webshare/Groq/Apify/Composio/Jev/Firecrawl optional services | `src/core/services.py` auth plus `src/setup/runtime_connect.py` reviewed apply | Linux synthetic endpoint/unit tests | implemented contracts / live-unverified / functionally unverified |
+| JS rendering & image OCR/Vision | `src/core/web_extract.py`: Firecrawl `/v1/scrape` fallback + local `tesseract` / optional Vision API | synthetic unit tests | implemented / requires optional API key or local tesseract |
+| Obsidian Markdown flow | `src/core/vault_flow.py init/run/status` | Linux synthetic/unit tests | implemented / fixture-tested / GUI and platform-unverified |
 | automatic sending | intentionally not supported | none | out of safe workshop scope |
 
 The current `kit.py setup` can reuse complete owner-matching channel pairs and add a missing

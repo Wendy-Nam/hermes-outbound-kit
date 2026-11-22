@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+"""Hermes Outbound Kit — 통합 CLI 진입점.
+
+사용 예시:
+  python3 outbound.py start                        # 대화형 초기 시작 (오프라인은 --offline)
+  python3 outbound.py setup --config setup.json    # 전체 설치 & 첫 실행 (--offline 가능)
+  python3 outbound.py profile presets              # 직군 프리셋 / init / bootstrap / style / preview
+  python3 outbound.py run --config setup.json ...  # 국내 채용·투자·나라장터·해외 수집 -> Obsidian 볼트
+  python3 outbound.py linkedin xray|run ...        # LinkedIn ICP -> Apify/CSV 소싱 -> 워밍업·DM
+  python3 outbound.py overseas ...                 # 해외 B2B 엔드유저(--mode end_user) & 대리점(--mode distributor)
+  python3 outbound.py copy lint|sequence ...       # 스팸어·가독성 린터 & 1~4차 멀티터치 시퀀스
+  python3 outbound.py replies ...                  # 답장 11라벨 분류 · 긍정 회신율 · 자동 DNC
+  python3 outbound.py meeting prep|post ...        # 미팅 전 1장 브리핑 · 미팅 후 리캡
+  python3 outbound.py health --domain example.com  # 발신 도메인 MX/SPF/DKIM/DMARC 점검
+  python3 outbound.py services status ...          # 외부 API 키 서비스(Firecrawl/Apify/Webshare/Jev 등) 점검
+  python3 outbound.py jev status|probe             # TypeSafe AI Jev 연결 점검
+"""
+from __future__ import annotations
+
+import importlib
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import src  # noqa: E402,F401  (registers src/* layers on sys.path)
+
+COMMANDS: dict[str, tuple[str, list[str], str]] = {
+    "start": ("start", [], "대화형 초기 설정 및 실행 (--offline 지원)"),
+    "setup": ("installer", ["setup"], "전체 설치·샘플·볼트 자동 실행 (--offline 지원)"),
+    "installer": ("installer", [], "단계별 설치 실행기 (plan/setup/resume/run/status/diagnose)"),
+    "kit": ("kit", [], "설정 검증·스킬 설치·모델·채널·진단 (validate/install/doctor/chat/gateway)"),
+    "validate": ("kit", ["validate"], "setup.json 유효성 검사"),
+    "install": ("kit", ["install"], "$HERMES_HOME에 25개 스킬·10종 프리셋 설치"),
+    "doctor": ("kit", ["doctor"], "설치 환경 진단"),
+    "profile": ("profile", [], "직군 프리셋·커스텀·브로셔 분석(bootstrap)·발신함 분석(style)·DNC·ATS"),
+    "run": ("workflow", ["run"], "국내 채용·투자·나라장터·해외 파이프라인 실행 -> Obsidian 볼트"),
+    "workflow": ("workflow", [], "워크플로 전체 명령 (run / draft-import)"),
+    "sources": ("sources", [], "개별 공고·투자·조달·해외 소스 수집기"),
+    "linkedin": ("linkedin_outbound", [], "LinkedIn ICP -> Apify 회사·담당자 소싱 -> 워밍업·300자 DM"),
+    "overseas": ("distributor_finder", [], "해외 B2B 엔드유저(--mode end_user) & 대리점(--mode distributor) 발굴"),
+    "copy": ("copy_guard", [], "GTMOS식 스팸어·상투어 린터(lint) & 1~4차 멀티터치 시퀀스(sequence)"),
+    "replies": ("reply_tracker", [], "답장 11라벨 분류 · 긍정 회신율 · 자동 DNC 차단 · LEARNINGS 누적"),
+    "meeting": ("meeting_and_health", [], "미팅 전 1장 브리핑(prep) · 미팅 후 리캡(post)"),
+    "health": ("meeting_and_health", ["health"], "발신 도메인 MX / SPF / DKIM / DMARC 헬스체크"),
+    "jev": ("jev_client", [], "TypeSafe AI Jev 고속 채점·검수 연결 확인 (status/probe)"),
+    "services": ("services", [], "선택 외부 서비스(Firecrawl/Apify/Webshare/Jev/Groq/Composio) 상태 점검"),
+    "vault": ("vault_flow", [], "Obsidian 볼트 초기화·동기화·검토 상태 관리"),
+    "server": ("server_access", [], "Linux 원격 서버 SSH 접속·배포 도우미"),
+    "operations": ("operations", [], "정기 예약 실행(cron/launchd/Task Scheduler) 관리"),
+}
+
+
+def _print_help() -> None:
+    print("Hermes Outbound Kit — 통합 명령어 도구\n")
+    print("사용법: python3 outbound.py <명령> [옵션...]\n")
+    print("주요 명령:")
+    for cmd, (_mod, _prefix, desc) in COMMANDS.items():
+        print(f"  {cmd:<12} {desc}")
+    print("\n각 명령의 세부 옵션은 `python3 outbound.py <명령> --help`로 확인하세요.")
+    print("자세한 한국어 사용법은 docs/MANUAL.md를 참고하세요.")
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if not args or args[0] in ("-h", "--help", "help"):
+        _print_help()
+        return 0
+    cmd, rest = args[0], args[1:]
+    if cmd == "smoke":
+        sys.path.insert(0, str(ROOT / "scripts"))
+        mod = importlib.import_module("local_smoke")
+        return int(mod.main(rest) or 0)
+    if cmd == "audit":
+        sys.path.insert(0, str(ROOT / "scripts"))
+        mod = importlib.import_module("privacy_audit")
+        return int(mod.main(rest) or 0)
+    if cmd == "bundle":
+        import runpy
+        runpy.run_path(str(ROOT / "scripts" / "build_bundle.py"), run_name="__main__")
+        return 0
+
+    entry = COMMANDS.get(cmd)
+    if not entry:
+        print(f"알 수 없는 명령입니다: {cmd}\n", file=sys.stderr)
+        _print_help()
+        return 2
+    mod_name, prefix, _desc = entry
+    mod = importlib.import_module(mod_name)
+    if hasattr(mod, "main"):
+        import inspect
+        forwarded = prefix + rest
+        sig = inspect.signature(mod.main)
+        if len(sig.parameters) == 0:
+            prev_argv = sys.argv
+            sys.argv = [f"outbound.py {cmd}", *forwarded]
+            try:
+                rc = mod.main()
+            finally:
+                sys.argv = prev_argv
+        else:
+            rc = mod.main(forwarded)
+        return int(rc) if isinstance(rc, int) else 0
+    print(f"모듈 {mod_name}에 main()이 없습니다.", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

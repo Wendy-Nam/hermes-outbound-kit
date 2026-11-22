@@ -44,7 +44,5 @@
   "jev_qa_drafts": false,
   "services": [],
   "vault_mode": "new",
-  "vault_path": "~/Documents/Hermes-GTM",
-  "omniroute_enabled": false,
-  "omh_enabled": false
+  "vault_path": "~/Documents/Hermes-GTM"
 }

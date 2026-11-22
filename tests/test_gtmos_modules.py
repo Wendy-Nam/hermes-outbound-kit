@@ -18,6 +18,7 @@ import unittest
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+import src  # noqa: E402,F401
 
 import copy_guard  # noqa: E402
 import distributor_finder  # noqa: E402

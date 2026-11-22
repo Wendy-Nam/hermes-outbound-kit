@@ -17,8 +17,8 @@ from typing import Callable
 
 SCRIPT = Path(__file__).resolve()
 KIT_ROOT = SCRIPT.parents[3]
-KIT_MODULE = KIT_ROOT / "kit.py"
-PATHS_MODULE = KIT_ROOT / "paths.py"
+KIT_MODULE = KIT_ROOT / "src" / "core" / "kit.py"
+PATHS_MODULE = KIT_ROOT / "src" / "core" / "paths.py"
 
 
 def load_kit_validator():
@@ -140,7 +140,7 @@ def _owner(questions: Questions, channel: str) -> str:
 
 
 def load_presets_module():
-    presets_path = KIT_ROOT / "profile_presets.py"
+    presets_path = KIT_ROOT / "src" / "profile" / "profile_presets.py"
     if not presets_path.is_file():
         return None
     spec = importlib.util.spec_from_file_location("hermes_outbound_presets", presets_path)
@@ -370,14 +370,6 @@ def collect_config(input_fn: InputFn = input, output_fn: OutputFn = print) -> di
     review_no_secrets = q.yes_no(
         "키·토큰·비밀번호를 chat/setup.json/ZIP/Obsidian에 넣지 않겠습니까?", default=True)
 
-    omh_enabled = q.yes_no(
-        "권장 핵심 기능 OMH 역할 위임·모델 라우팅을 설치합니까?",
-        default=True)
-    if omh_enabled:
-        omniroute_enabled = q.yes_no("선택 기능 OmniRoute 설치·라우팅을 요청합니까?", default=False)
-    else:
-        omniroute_enabled = False
-        q.output("OmniRoute는 OMH와 함께 쓰는 선택 기능이라 이번 설정에서는 건너뜁니다.")
     vault_mode = q.choice(
         "결과 폴더 (new=새 Obsidian 볼트 권장, none=일반 폴더, existing=기존 볼트)",
         ("none", "new", "existing"), default="new")
@@ -479,8 +471,6 @@ def collect_config(input_fn: InputFn = input, output_fn: OutputFn = print) -> di
         "review_human_approval": review_human_approval,
         "review_terms_costs": review_terms_costs,
         "review_no_secrets": review_no_secrets,
-        "omh_enabled": omh_enabled,
-        "omniroute_enabled": omniroute_enabled,
         "vault_mode": vault_mode,
         "vault_path": vault_path,
         "vault_existing_approved": vault_existing_approved,
@@ -491,7 +481,6 @@ def collect_config(input_fn: InputFn = input, output_fn: OutputFn = print) -> di
         "timezone": timezone,
         "gateway_enabled": gateway_enabled,
         "service_apply_enabled": service_apply_enabled,
-        "routing_bindings_path": "",
     }
 
 
@@ -528,9 +517,7 @@ def summary(data: dict) -> str:
         f"위치={data['install_location']}({data['os_hint']}, {data['desktop_mode']}){remote}\n"
         f"워크플로우={','.join(data['workflows']) or '없음'} / 채널={data['channel']}\n"
         f"서비스={','.join(data['services']) or '없음'} / Obsidian={data['vault_mode']}\n"
-        f"모델={data['model_provider']}({data['model_auth']}) / "
-        f"OMH={'사용' if data['omh_enabled'] else '미사용'} / "
-        f"OmniRoute={'선택' if data['omniroute_enabled'] else '미선택'}"
+        f"모델={data['model_provider']}({data['model_auth']})"
     )
 
 

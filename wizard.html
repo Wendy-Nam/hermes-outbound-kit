@@ -386,11 +386,8 @@ details .inside{padding:0 0 16px}
     <label class="choice full" id="vault-approval" hidden><input type="checkbox" name="vault_existing_approved"><span><strong>기존 볼트에 관리 파일 추가를 승인</strong><small>기존 노트와 설정은 덮어쓰지 않습니다.</small></span></label>
   </div>
 
-  <details><summary>예약 실행 &amp; 런타임(OMH/OmniRoute) · 선택</summary><div class="inside">
-    <div class="choices" style="margin-bottom:12px">
-      <label class="choice"><input type="checkbox" name="omh_enabled" checked><span><strong>OMH core 설치 · 권장</strong><small>역할 위임·모델 라우팅 플러그인</small></span></label>
-      <label class="choice"><input type="checkbox" name="omniroute_enabled"><span><strong>OmniRoute · 선택</strong><small>로컬 Docker 필요</small></span></label>
-    </div>
+  <details><summary>예약 실행 &amp; 메신저 봇 · 선택</summary><div class="inside">
+    <p class="hint" style="margin-bottom:10px">이 키트는 OMH·OmniRoute에 의존하지 않고 순정 Hermes에서 독립적으로 동작합니다.</p>
     <label class="choice"><input type="checkbox" name="schedule_enabled" id="schedule_enabled"><span><strong>정기 예약 실행 준비</strong><small>첫 수동 실행 성공 후 적용</small></span></label>
     <div class="grid three" id="schedule-fields" hidden style="margin-top:10px">
       <label class="field"><span>주기</span><select name="schedule_frequency" id="schedule_frequency"><option value="daily">매일</option><option value="hourly">매시간</option></select></label>
@@ -412,12 +409,14 @@ details .inside{padding:0 0 16px}
     </div>
   </div></details>
 
-  <details><summary>추가 외부 서비스 (Jev / Webshare / Groq / Apify / Composio) · 선택</summary><div class="inside">
+  <details><summary>추가 외부 서비스 (Firecrawl / Jev / Webshare / Groq / Apify / Composio) · 선택</summary><div class="inside">
+    <p class="hint" style="margin-bottom:10px">모든 외부 API 키는 이 브라우저에 입력하지 않고, 나중에 로컬 터미널에서 <code>$HERMES_HOME/.env</code>에만 저장합니다.</p>
+    <div class="service-row"><label class="choice"><input type="checkbox" name="services" value="firecrawl"><span><strong>Firecrawl (JS 렌더링 크롤링)</strong><small><code>FIRECRAWL_API_KEY</code> — React/Next/SPA 웹사이트 자동 JS 렌더링 추출</small></span></label></div>
     <div class="service-row"><label class="choice"><input type="checkbox" name="services" value="jev"><span><strong>TypeSafe AI Jev</strong><small><code>TYPESAFE_API_KEY</code> 연결 프로브 및 고속 분류·채점</small></span></label></div>
-    <div class="service-row"><label class="choice"><input type="checkbox" name="services" value="webshare"><span><strong>Webshare</strong><small>허용된 공개 소스 전용 프록시 후보</small></span></label><div class="grid prereq"><label class="field"><span>허용 대상 URL</span><input name="webshare_allowed_target" maxlength="1000"></label><label class="choice"><input type="checkbox" name="webshare_policy_ack"><span><strong>정책 검토 확인</strong></span></label></div></div>
-    <div class="service-row"><label class="choice"><input type="checkbox" name="services" value="groq"><span><strong>Groq</strong><small>음성 인식 STT 후보</small></span></label><label class="choice prereq"><input type="checkbox" name="groq_audio_consent"><span><strong>오디오 외부 전송 동의</strong></span></label></div>
-    <div class="service-row"><label class="choice"><input type="checkbox" name="services" value="apify"><span><strong>Apify</strong><small>관리형 Actor 수집기 후보</small></span></label><div class="grid prereq"><label class="field"><span>Actor 이름</span><input name="apify_actor_name" maxlength="1000"></label><label class="field"><span>최대 예산 USD</span><input name="apify_budget_usd" inputmode="decimal" pattern="[0-9]{1,6}([.][0-9]{1,2})?" maxlength="9"></label><label class="choice full"><input type="checkbox" name="apify_cost_ack"><span><strong>비용·약관 검토 확인</strong></span></label></div></div>
-    <div class="service-row"><label class="choice"><input type="checkbox" name="services" value="composio"><span><strong>Composio</strong><small>외부 앱 OAuth 연결 후보</small></span></label><div class="grid prereq"><label class="field"><span>앱 이름 (쉼표 구분)</span><input name="composio_apps" maxlength="1000" placeholder="예: gmail, hubspot"></label><label class="choice"><input type="checkbox" name="composio_scope_ack"><span><strong>최소 권한 검토 확인</strong></span></label></div></div>
+    <div class="service-row"><label class="choice"><input type="checkbox" name="services" value="webshare"><span><strong>Webshare</strong><small><code>WEBSHARE_API_KEY</code> — 허용된 공개 소스 전용 프록시 후보</small></span></label><div class="grid prereq"><label class="field"><span>허용 대상 URL</span><input name="webshare_allowed_target" maxlength="1000"></label><label class="choice"><input type="checkbox" name="webshare_policy_ack"><span><strong>정책 검토 확인</strong></span></label></div></div>
+    <div class="service-row"><label class="choice"><input type="checkbox" name="services" value="groq"><span><strong>Groq</strong><small><code>GROQ_API_KEY</code> — 음성 인식 STT 후보</small></span></label><label class="choice prereq"><input type="checkbox" name="groq_audio_consent"><span><strong>오디오 외부 전송 동의</strong></span></label></div>
+    <div class="service-row"><label class="choice"><input type="checkbox" name="services" value="apify"><span><strong>Apify</strong><small><code>APIFY_TOKEN</code> — LinkedIn 회사·담당자 및 관리형 Actor 수집기</small></span></label><div class="grid prereq"><label class="field"><span>Actor 이름</span><input name="apify_actor_name" maxlength="1000"></label><label class="field"><span>최대 예산 USD</span><input name="apify_budget_usd" inputmode="decimal" pattern="[0-9]{1,6}([.][0-9]{1,2})?" maxlength="9"></label><label class="choice full"><input type="checkbox" name="apify_cost_ack"><span><strong>비용·약관 검토 확인</strong></span></label></div></div>
+    <div class="service-row"><label class="choice"><input type="checkbox" name="services" value="composio"><span><strong>Composio</strong><small><code>COMPOSIO_CONSUMER_KEY</code> — 외부 앱 OAuth 연결 후보</small></span></label><div class="grid prereq"><label class="field"><span>앱 이름 (쉼표 구분)</span><input name="composio_apps" maxlength="1000" placeholder="예: gmail, hubspot"></label><label class="choice"><input type="checkbox" name="composio_scope_ack"><span><strong>최소 권한 검토 확인</strong></span></label></div></div>
   </div></details>
 </section>
 
@@ -429,7 +428,7 @@ details .inside{padding:0 0 16px}
 
 <section class="final">
   <h2>커스텀 설정 파일(setup.json)을 저장합니다</h2>
-  <p>비밀값 없이 영업 프로필·크롤링·채점 설정만 저장됩니다. 저장 후 <code>profile.py sync</code> 또는 <code>installer.py plan</code>으로 바로 반영할 수 있습니다.</p>
+  <p>비밀값 없이 영업 프로필·크롤링·채점 설정만 저장됩니다. 저장 후 <code>python3 outbound.py profile sync</code> 또는 <code>python3 outbound.py setup</code>으로 바로 반영할 수 있습니다.</p>
   <div class="confirm">
     <label><input type="checkbox" name="review_no_secrets" required checked>API 키·토큰·비밀번호·개인키 내용을 입력하지 않았습니다.</label>
     <label><input type="checkbox" name="review_human_approval" required checked>자동 발송은 사용하지 않고, 초안과 외부 동작은 사람이 검토합니다.</label>
@@ -438,9 +437,9 @@ details .inside{padding:0 0 16px}
   <button class="submit" type="submit">setup.json 생성 및 다운로드</button>
   <p id="status" class="status" role="status"></p>
   <div class="next-command">
-    1) 프로필 즉시 반영 &amp; 미리보기: python3 profile.py sync --config setup.json --force &amp;&amp; python3 profile.py preview --config setup.json<br>
-    2) 전체 설치/실행: python3 installer.py plan --config setup.json<br>
-    3) 첫 시나리오 실행: python3 workflow.py run --config setup.json --home ~/.hermes-outbound --output ./output --vault ~/Documents/Hermes-GTM
+    1) 프로필 즉시 반영 &amp; 미리보기: python3 outbound.py profile sync --config setup.json --force &amp;&amp; python3 outbound.py profile preview --config setup.json<br>
+    2) 전체 설치/실행: python3 outbound.py setup --config setup.json --offline --no-launch<br>
+    3) 첫 시나리오 실행: python3 outbound.py run --config setup.json --home ~/.hermes-outbound --output ./output --vault ~/Documents/Hermes-GTM
   </div>
 </section>
 
@@ -765,7 +764,7 @@ document.getElementById('import-file').addEventListener('change', async e => {
     const boolFields = [
       'jobs_fetch_details','jobs_partial_ok','funding_enrich_hiring','discord_message_content_intent',
       'jev_enabled','jev_qa_drafts',
-      'omh_enabled','omniroute_enabled','vault_existing_approved','schedule_enabled','gateway_enabled',
+      'vault_existing_approved','schedule_enabled','gateway_enabled',
       'webshare_policy_ack','groq_audio_consent','apify_cost_ack','composio_scope_ack'
     ];
     boolFields.forEach(k => {
@@ -916,12 +915,6 @@ function updateSchedule() {
   form.elements.schedule_time.required = daily;
 }
 
-function updateRouting() {
-  const on = form.elements.omh_enabled.checked;
-  form.elements.omniroute_enabled.disabled = !on;
-  if (!on) form.elements.omniroute_enabled.checked = false;
-}
-
 function updatePreview() {
   document.getElementById('call-now-val').textContent = form.elements.cutoff_call_now.value + '점';
   document.getElementById('nurture-val').textContent = form.elements.cutoff_nurture.value + '점';
@@ -1018,7 +1011,7 @@ function updateReview() {
 
 function updateAll() {
   updateTarget(); updateChannels(); updateSsh(); updateVault();
-  updateSource(); updateDraft(); updateSchedule(); updateRouting();
+  updateSource(); updateDraft(); updateSchedule();
   updatePreview(); updateReview();
 }
 
@@ -1139,8 +1132,6 @@ function buildData() {
     apify_cost_ack: bool('apify_cost_ack'),
     composio_apps: apps,
     composio_scope_ack: bool('composio_scope_ack'),
-    omh_enabled: bool('omh_enabled'),
-    omniroute_enabled: bool('omniroute_enabled'),
     vault_existing_approved: vaultMode.value === 'existing' && bool('vault_existing_approved'),
     vault_collision_policy: 'preview_stop',
     schedule_enabled: bool('schedule_enabled'),
@@ -1149,7 +1140,6 @@ function buildData() {
     timezone: bool('schedule_enabled') ? oneLine(fd.get('timezone')) : 'Asia/Seoul',
     gateway_enabled: bool('gateway_enabled'),
     service_apply_enabled: false,
-    routing_bindings_path: '',
     review_human_approval: bool('review_human_approval'),
     review_terms_costs: bool('review_terms_costs'),
     review_no_secrets: bool('review_no_secrets'),

@@ -51,10 +51,9 @@ Developer Portal의 앱/봇, Message Content Intent, 초대한 서버와 본인 
 방법**입니다. 클라우드 화면에서 서버 주소/IP, 사용자 이름, 포트(보통 22)를 찾으세요. SSH 개인키는 내
 컴퓨터에만 두고 `.pub` 공개키만 서버에 등록합니다. 접속, 배포, 수동 실행, 재부팅 후 실행을 각각 확인합니다.
 
-### OmniRoute
+### 런타임 독립성
 
-선택 기능입니다. Docker Desktop 또는 Docker Engine, Compose, Docker에 할당된 메모리 4GiB 이상이
-필요합니다. 첫 결과만 볼 사람은 준비하지 않아도 됩니다. OMH는 권장 기본값이며 사용자가 끌 수 있습니다.
+이 키트는 순정 Hermes 단독 환경에서 동작하며, OMH(oh-my-hermes)나 OmniRoute에 의존하지 않습니다. 이미 별도로 OMH나 OmniRoute를 쓰는 Hermes 환경에서도 기존 구성을 건드리지 않고 함께 사용할 수 있습니다.
 
 ## 4. 설치 폴더
 
@@ -72,11 +71,11 @@ Developer Portal의 앱/봇, Message Content Intent, 초대한 서버와 본인 
 Python이 이미 있다면 하나의 시작 명령을 실행합니다.
 
 ```sh
-python3 start.py --help
-python3 start.py
+python3 outbound.py start --help
+python3 outbound.py start
 ```
 
 Windows PowerShell에서는 `python3` 대신 `py -3`을 사용합니다. 계정 없이 연습 데이터부터 보려면
-`python3 start.py --offline`을 사용합니다. 첫 성공 기준은 “설치됨” 표시가 아니라
+`python3 outbound.py start --offline`을 사용합니다. 첫 성공 기준은 “설치됨” 표시가 아니라
 후보 회사, 선택 이유의 근거, 사람이 검토할 메시지 초안, 결과 파일 위치가 함께 보이는 것입니다. 예약
 실행은 수동 실행이 성공한 뒤에만 켭니다.
