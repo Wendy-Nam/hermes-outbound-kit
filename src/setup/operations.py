@@ -18,7 +18,6 @@ import os
 from pathlib import Path
 import platform as host_platform
 import plistlib
-import shutil
 import subprocess
 import sys
 import tempfile

@@ -23,7 +23,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-import yaml
+try:
+    import yaml as _yaml
+except ImportError:
+    _yaml = None
 
 
 SCHEMA = "hermes_outbound_runtime/v1"
@@ -44,6 +47,98 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
     """Never forward an Apify bearer to a redirect target."""
     def redirect_request(self, *args, **kwargs):
         return None
+
+
+def _parse_scalar(val: str):
+    if val in ("true", "True"):
+        return True
+    if val in ("false", "False"):
+        return False
+    if val in ("null", "Null", "~"):
+        return None
+    if re.fullmatch(r"-?\d+", val):
+        return int(val)
+    if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+        return val[1:-1]
+    return val
+
+
+def _pure_yaml_load(text: str) -> dict:
+    """Minimal indentation-based YAML mapping/list loader for Hermes config.yaml when PyYAML is absent."""
+    root: dict = {}
+    stack: list[tuple[int, Any]] = [(-1, root)]
+    for raw_line in text.splitlines():
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(raw_line) - len(raw_line.lstrip(" "))
+        while len(stack) > 1 and indent <= stack[-1][0]:
+            stack.pop()
+        parent = stack[-1][1]
+        if stripped.startswith("- "):
+            if not isinstance(parent, list):
+                raise ValueError("unexpected list item")
+            parent.append(_parse_scalar(stripped[2:].strip()))
+            continue
+        if ":" not in stripped:
+            raise ValueError("invalid yaml line")
+        key, rest = stripped.split(":", 1)
+        key = key.strip().strip('"').strip("'")
+        val = rest.strip()
+        if not isinstance(parent, dict):
+            raise ValueError("unexpected mapping item")
+        if not val:
+            # Peek whether next non-empty line is a list or dict; default to dict
+            child: dict = {}
+            parent[key] = child
+            stack.append((indent, child))
+        elif val.startswith("{") or val.startswith("["):
+            parent[key] = json.loads(val)
+        else:
+            parent[key] = _parse_scalar(val)
+    return root
+
+
+def _pure_yaml_dump(data: dict, indent: int = 0) -> str:
+    lines: list[str] = []
+    pad = " " * indent
+    for k, v in data.items():
+        key_str = k if re.fullmatch(r"[A-Za-z0-9_.-]+", str(k)) else json.dumps(str(k), ensure_ascii=False)
+        if isinstance(v, dict):
+            if not v:
+                lines.append(f"{pad}{key_str}: {{}}")
+            else:
+                lines.append(f"{pad}{key_str}:")
+                lines.append(_pure_yaml_dump(v, indent + 2).rstrip("\n"))
+        elif isinstance(v, list):
+            if not v:
+                lines.append(f"{pad}{key_str}: []")
+            else:
+                lines.append(f"{pad}{key_str}:")
+                for item in v:
+                    lines.append(f"{pad}  - {_format_yaml_scalar(item)}")
+        else:
+            lines.append(f"{pad}{key_str}: {_format_yaml_scalar(v)}")
+    return "\n".join(lines) + "\n"
+
+
+def _format_yaml_scalar(v) -> str:
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return str(v)
+    if v is None:
+        return "null"
+    s = str(v)
+    if re.fullmatch(r"[A-Za-z0-9_./:-]+", s) and s not in ("true", "false", "null"):
+        return s
+    return json.dumps(s, ensure_ascii=False)
+
+
+def _dump_yaml(document: dict) -> str:
+    if _yaml is not None:
+        return _yaml.safe_dump(document, allow_unicode=True, sort_keys=False)
+    return _pure_yaml_dump(document)
 
 
 def _safe_home(home) -> Path:
@@ -89,9 +184,13 @@ def _read_yaml(path: Path) -> dict:
         return {}
     if path.is_symlink() or not path.is_file():
         raise RuntimeConnectError("config.yaml을 안전하게 읽을 수 없습니다.")
+    raw = path.read_text(encoding="utf-8-sig")
     try:
-        value = yaml.safe_load(path.read_text(encoding="utf-8-sig")) or {}
-    except yaml.YAMLError:
+        if _yaml is not None:
+            value = _yaml.safe_load(raw) or {}
+        else:
+            value = _pure_yaml_load(raw)
+    except Exception:
         raise RuntimeConnectError("기존 config.yaml 형식을 읽을 수 없어 보존했습니다.") from None
     if not isinstance(value, dict):
         raise RuntimeConnectError("config.yaml 최상위는 객체여야 합니다.")
@@ -237,7 +336,7 @@ def apply_services(data: dict, home) -> dict:
                 merged[name] = desired
             payload = {"schema_version": 1, "managed_by": "hermes-outbound-kit", "connectors": merged}
             connector_rendered = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-        config_rendered = yaml.safe_dump(config, allow_unicode=True, sort_keys=False) if updates else None
+        config_rendered = _dump_yaml(config) if updates else None
         # Multi-file replacement is made failure-atomic by restoring only the
         # files written by this transaction.  The interprocess lock prevents a
         # second kit process from racing those snapshots.

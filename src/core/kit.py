@@ -6,15 +6,12 @@ if str(_BootPath(__file__).resolve().parents[2]) not in _boot_sys.path:
     _boot_sys.path.insert(0, str(_BootPath(__file__).resolve().parents[2]))
 import src as _src_bootstrap  # noqa: E402,F401
 import argparse
-import csv
 import getpass
 import json
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
-import tempfile
 import sys
 import urllib.error
 import urllib.request

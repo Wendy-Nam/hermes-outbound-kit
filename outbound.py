@@ -59,8 +59,11 @@ COMMANDS: dict[str, tuple[str, list[str], str]] = {
     "jev": ("jev_client", [], "TypeSafe AI Jev 고속 채점·검수 연결 확인 (status/probe)"),
     "services": ("services", [], "선택 외부 서비스(Firecrawl/Apify/Webshare/Jev/Groq/Composio) 상태 점검"),
     "vault": ("vault_flow", [], "Obsidian 볼트 초기화·동기화·검토 상태 관리"),
+    "sync": ("vault_sync", [], "원격 서버 볼트 Markdown 읽기 전용 SSH 동기화 (plan/pull/status)"),
     "server": ("server_access", [], "Linux 원격 서버 SSH 접속·배포 도우미"),
     "operations": ("operations", [], "정기 예약 실행(cron/launchd/Task Scheduler) 관리 및 즉시 검증"),
+    "docs": ("docs_support", [], "공식 Hermes 문서 버전·도움말 조회 (version/sync/query/help)"),
+    "bot": ("test_bot", [], "소유자 전용 Telegram 봇 연결 점검 (plan/configure/check)"),
 }
 
 

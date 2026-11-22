@@ -12,7 +12,7 @@ description: Turn reviewed company buying-signal evidence into Korean or English
 3. 고객 적합도와 시그널 최신성을 분리한다. 근거가 없는 항목은 미상으로 남긴다. 낮은 coverage는 추가 조사로 보낸다. 숫자·투자 단계·투자 금액을 제목만 보고 추정하지 않는다.
 4. 검증된 시그널 한 개 → 관련 문제 가설 한 개 → 사용자 제품이 도울 수 있는 지점 → 짧은 CTA로 초안을 쓴다. 가설은 사실처럼 단정하지 않는다.
 5. 이메일 제목 2개, 120단어 이하 본문, 300자 이하 DM, 근거 목록, 확인할 주장 목록을 출력한다. 수신자 개인정보·이메일 주소를 지어내지 않는다. 한국어/영어는 사용자의 타깃에 맞춘다.
-6. Obsidian 사용 시 사람 메모를 덮어쓰지 말고 전용 결과물 폴더에 초안을 둔다. vault_flow.py의 실제 --help와 docs/OBSIDIAN.md를 따라 승인 해시와 lineage를 유지한다. 원문이나 초안이 바뀌면 이전 승인을 재사용하지 않는다.
+6. Obsidian 사용 시 사람 메모를 덮어쓰지 말고 전용 결과물 폴더에 초안을 둔다. `python3 outbound.py vault --help`와 `docs/OBSIDIAN.md`를 따라 승인 해시와 lineage를 유지한다. 원문이나 초안이 바뀌면 이전 승인을 재사용하지 않는다.
 
 기본 동작은 초안 생성까지다. Telegram/Discord의 요청도 자동 메일 발송 허가가 아니다. 실제 발송·CRM 수정·유료 수집은 별도 대상/내용/비용 확인 없이는 실행하지 않는다.
 
