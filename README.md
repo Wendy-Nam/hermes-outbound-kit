@@ -44,13 +44,14 @@ Mac에서는 `시작하기.command`, Windows에서는 `시작하기.bat`을 더�
 | **내 영업 직군에 맞게 세팅** | `wizard.html`, `outbound.py profile` | 10개 업종 프리셋(SaaS·HR·제조·커머스·물류·보안·핀테크·공공·해외 B2B 엔드유저·해외 대리점) |
 | **브로셔·홈페이지로 자동 세팅** | `outbound.py profile bootstrap` | 자사 브로셔(`.pptx/.docx/.pdf/.md/.png/.jpg`) + 자사/경쟁사 URL(JS 렌더링 지원) 분석 → 초기 타깃팅 전략·DNC 자동 생성 |
 | **내 메일 말투 학습** | `outbound.py profile style` | 내 발신메일함(`.mbox/.eml`/읽기 전용 IMAP)에서 인사말·분량·화법만 익명 추출(개인정보 미저장) |
-| **국내 공고·투자·입찰 발굴** | `outbound.py run` | 원티드(상세 JD)·사람인·잡코리아(이미지 공고 OCR 지원)·점핏·ATS(Greenhouse/Lever/Ashby/Greeting)·Platum/VentureSquare·나라장터(G2B) |
-| **LinkedIn 담당자 소싱·DM** | `outbound.py linkedin` | ICP 정의 → Boolean X-Ray & Apify 공식 API로 회사/담당자 소싱 → 워밍업 플랜 + 300자 연결요청·DM |
+| **국내 공고·투자·입찰 발굴** | `outbound.py run`, `outbound.py g2b` | 원티드·사람인·잡코리아(이미지 OCR)·점핏·ATS·Platum/VentureSquare + **나라장터 발주계획/사전규격/입찰공고 기준선 차분 감시 & 잡음 제외** |
+| **LinkedIn 담당자 소싱·CRM** | `outbound.py linkedin`, `outbound.py crm` | ICP → Apify/CSV 소싱 → **초안/연락이력 분리** · **Obsidian Kanban 보드(`CRM Board.md`) 자동 동기화** · **무결성 감사(`vault audit`)** |
 | **해외 B2B 엔드유저 / 대리점 개척** | `outbound.py overseas` | 해외 최종 도입 기업(`--mode end_user`) & 현지 대리점(`--mode distributor`) 발굴·4축 채점 + 영/일/독/한 네이티브 초안 |
-| **멀티터치 시퀀스 & 스팸 검수** | `outbound.py copy` | 1~4차 팔로업 시퀀스 생성 + 스팸 금지어·상투어·분량·미치환 변수 자동 점검 |
+| **경쟁사 역추적 · 데일리 브리핑** | `outbound.py intel`, `outbound.py briefing` | 경쟁사 사례에서 돈 쓴 문제 역추적 → 비슷한 타깃 큐 + **오늘 현황·미발송 초안·G2B·감사 데일리 브리핑** |
+| **멀티터치 시퀀스 & 쉬운 문체 검수** | `outbound.py copy` | 1~4차 시퀀스 생성 + 콜드메일 스팸어 린트 + **영업 전략문서 쉬운 한국어 문체·표 열 감사(`--mode doc`)** |
 | **답장 분류 & 수신거부 자동 차단** | `outbound.py replies` | 답장 11종 분류, 긍정 회신율 계산, 수신거부/바운스 자동 DNC 등록, `LEARNINGS.md` 누적 |
 | **미팅 브리핑 · 도메인 헬스체크** | `outbound.py meeting`, `outbound.py health` | 미팅 전 1장 브리핑, 미팅 후 리캡 초안, 발신 도메인 `MX / SPF / DKIM / DMARC` 점검 |
-| **외부 API 서비스 & Jev 점검 (선택)** | `outbound.py services`, `outbound.py jev` | Firecrawl(JS 렌더)·Apify·Webshare·TypeSafe AI Jev·Groq·Composio 키 상태 점검 |
+| **외부 API 서비스 & Jev 점검 (선택)** | `outbound.py services`, `outbound.py jev` | Crawl4AI(무료)/Firecrawl(선택)·Apify·Webshare·TypeSafe AI Jev·Groq·Composio 점검 |
 
 ---
 
@@ -71,21 +72,26 @@ python3 outbound.py profile bootstrap --company-url https://company.example.com 
 python3 outbound.py profile style --discover
 python3 outbound.py profile style --mbox ~/Downloads/Sent.mbox --config setup.json --apply
 
-# 4) 국내 채용·투자·나라장터 실행 -> Obsidian 볼트 생성
+# 4) 국내 채용·투자 실행 & 나라장터 발주계획·사전규격·입찰공고 기준선 차분 감시
 python3 outbound.py run --config setup.json --home ~/.hermes-outbound --output ./output --vault ~/Documents/Hermes-GTM
+python3 outbound.py g2b --keywords "의료후송,의료지원,비상대피" --stages order_plan,prespec,bid_notice --initialize --vault ~/Documents/Hermes-GTM
 
-# 5) LinkedIn ICP -> Apify 회사·담당자 소싱 (또는 Sales Nav CSV)
+# 5) LinkedIn ICP -> 소싱 -> CRM Kanban 동기화 & 볼트 무결성 감사
 python3 outbound.py linkedin xray --config setup.json
 python3 outbound.py linkedin run --config setup.json --contacts-file ./sales-nav.csv --vault ~/Documents/Hermes-GTM
+python3 outbound.py crm knowledge --config setup.json --vault ~/Documents/Hermes-GTM
+python3 outbound.py vault audit --vault ~/Documents/Hermes-GTM
 
-# 6) 해외 B2B 엔드유저 직접 영업 / 해외 대리점 발굴
+# 6) 해외 B2B 엔드유저 직접 영업 / 해외 대리점 발굴 / 경쟁사 역추적
 python3 outbound.py overseas --mode end_user --config setup.json --file ./targets.csv --country US --country DE --country JP --vault ~/Documents/Hermes-GTM
 python3 outbound.py overseas --mode distributor --config setup.json --distributor-url https://competitor.example.com/distributors --country DE --vault ~/Documents/Hermes-GTM
+python3 outbound.py intel --input ./competitor-signals.csv --competitor "GlobalCorp" --vault ~/Documents/Hermes-GTM
 
-# 7) 1~4차 시퀀스 · 답장 분석 · 미팅 브리핑 · 발신 도메인 점검
+# 7) 쉬운 한국어 문체 감사 · 1~4차 시퀀스 · 답장 분석 · 데일리 브리핑 · 도메인 점검
+python3 outbound.py copy lint --mode doc --file ~/Documents/Hermes-GTM/Knowledge/영업\ 포지셔닝.md
 python3 outbound.py copy sequence --company "예시기업" --title "데이터 엔지니어" --config setup.json
 python3 outbound.py replies --input ./replies.csv --sent 300 --apply-suppression --home ~/.hermes-outbound --vault ~/Documents/Hermes-GTM
-python3 outbound.py meeting prep --company "예시기업" --vault ~/Documents/Hermes-GTM
+python3 outbound.py briefing --vault ~/Documents/Hermes-GTM --text
 python3 outbound.py health --domain example.com
 ```
 
@@ -102,10 +108,10 @@ hermes-outbound-kit/
 ├── setup.example.json      # 샘플 설정 파일
 ├── 시작하기.command / .bat  # Mac / Windows 더블클릭 실행기
 ├── src/
-│   ├── core/               # 설정·수집기·JS렌더/이미지OCR(web_extract)·서비스·볼트·워크플로
+│   ├── core/               # 설정·수집기·Crawl4AI/OCR(web_extract)·G2B감시·CRM보드/감사·볼트·워크플로
 │   ├── profile/            # 10종 프리셋·브로셔/웹 분석·발신함 문체 분석
-│   ├── pipelines/          # LinkedIn·해외 B2B/대리점·카피 가드·답장 추적·미팅/도메인·Jev
-│   └── setup/              # 설치기·Hermes 엔진·예약 실행·원격 SSH 배포
+│   ├── pipelines/          # LinkedIn·해외 B2B/대리점·경쟁사 인텔·데일리 브리핑·카피 가드·답장·미팅·Jev
+│   └── setup/              # 설치기·Hermes 엔진·예약 실행(--verify)·원격 SSH 배포
 ├── pack/                   # 25개 Hermes 영업 스킬 & 10종 직군 프리셋 JSON
 ├── scripts/                # 배포 번들 생성 · 오프라인 스모크 · 개인정보 감사
 ├── docs/                   # 사용자 한국어 가이드 (내부 참고·감사 문서는 docs/reference/)
@@ -115,19 +121,19 @@ hermes-outbound-kit/
 
 ---
 
-## API 키 · JS 렌더링 · 이미지 공고 인식 안내
+## API 키 · 무료 JS 렌더링(Crawl4AI) · 이미지 공고 인식 안내
 
 외부 서비스 키는 **모두 선택 사항**이며, 사용할 서비스의 키만 로컬 **`~/.hermes-outbound/.env`**(Windows는 `%LOCALAPPDATA%\hermes-outbound\.env`)에 넣습니다.
 
-| 기능 / 서비스 | 환경변수 이름 (`.env`) | 역할 |
+| 기능 / 서비스 | 권장 설정 (무료 우선) | 역할 |
 |---|---|---|
-| **JS/SPA 웹사이트 렌더링** | `FIRECRAWL_API_KEY` | React/Next/SPA 페이지가 빈 HTML로 올 때 자동으로 Firecrawl `/v1/scrape`로 렌더링 추출 |
-| **이미지 공고 / 스캔 브로셔 인식** | 로컬 `tesseract` (무료) 또는 `OPENAI_API_KEY` / `OPENROUTER_API_KEY` | 사람인·잡코리아 이미지 공고(`<img>`)와 `.png/.jpg/.webp` 브로셔 텍스트 자동 추출 (미설치 시 투명하게 안내, 내용 지어내기 없음) |
-| **LinkedIn 회사·담당자 소싱** | `APIFY_TOKEN` | Apify 공식 Actor API 실행 (없으면 Sales Nav CSV / X-Ray 무료 모드 사용) |
-| **나라장터(G2B) 실시간 조회** | `DATA_GO_KR_API_KEY` | 공공데이터포털 무료 인증키 |
-| **허용 소스 전용 프록시** | `WEBSHARE_API_KEY` | 허용된 공개 출처 전용 전송(로그인·CAPTCHA 우회 금지) |
-| **고속 채점·초안 검수** | `TYPESAFE_API_KEY` (또는 `JEV_API_KEY`) | 대량 사전 필터링·채점·답장 분류 가속(없으면 로컬 규칙 자동 폴백) |
-| **음성 인식 / OAuth 앱 연결** | `GROQ_API_KEY`, `COMPOSIO_CONSUMER_KEY` | 선택 STT 및 최소권한 외부 앱 연결 |
+| **JS/SPA 웹사이트 렌더링** | **1순위 무료 오픈소스 Crawl4AI** (`pip install crawl4ai && crawl4ai-setup` 또는 로컬 Docker `CRAWL4AI_BASE_URL=http://127.0.0.1:11235`) → 2순위 로컬 Playwright → 3순위 선택 `FIRECRAWL_API_KEY` | React/Next/SPA 페이지가 빈 HTML로 올 때 유료 API 없이 무료 로컬 렌더링으로 우선 추출 |
+| **이미지 공고 / 스캔 브로셔 인식** | **1순위 무료 로컬 `tesseract`** (`kor+eng`) → 2순위 선택 `OPENAI_API_KEY` / `OPENROUTER_API_KEY` | 사람인·잡코리아 이미지 공고(`<img>`)와 `.png/.jpg/.webp` 브로셔 텍스트 자동 추출 (미설치 시 내용 지어내기 없음) |
+| **LinkedIn 회사·담당자 소싱** | `APIFY_TOKEN` (선택) | Apify 공식 Actor API 실행 (없으면 Sales Nav CSV / X-Ray 무료 모드 사용) |
+| **나라장터(G2B) 실시간 감시** | `DATA_GO_KR_API_KEY` (무료) | 공공데이터포털 무료 인증키 (발주계획·사전규격·입찰공고 기준선 차분 감시) |
+| **허용 소스 전용 프록시** | `WEBSHARE_API_KEY` (선택) | 허용된 공개 출처 전용 전송(로그인·CAPTCHA 우회 금지) |
+| **고속 채점·초안 검수** | `TYPESAFE_API_KEY` (선택) | 대량 사전 필터링·채점·답장 분류 가속(없으면 로컬 규칙 자동 폴백) |
+| **음성 인식 / OAuth 앱 연결** | `GROQ_API_KEY`, `COMPOSIO_CONSUMER_KEY` (선택) | 선택 STT 및 최소권한 외부 앱 연결 |
 
 - **전용 홈 폴더**: Mac/Linux `~/.hermes-outbound`, Windows `%LOCALAPPDATA%\hermes-outbound` (기존 설정과 내가 수정한 노트는 덮어쓰지 않습니다)
 - **포함되지 않는 기능**: 이메일/DM 자동 발송, 로그인·CAPTCHA 우회, 무단 개인정보 수집.

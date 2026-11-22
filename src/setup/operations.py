@@ -411,16 +411,20 @@ def _write_preserving(path: Path, content: str) -> str:
 
 
 def install_schedule(plan: dict, state_dir: str | Path, *, apply: bool = False,
-                     run_command=subprocess.run) -> dict:
+                     verify: bool = False, run_command=subprocess.run) -> dict:
     if plan.get("execution_location") == "remote":
         raise ValueError("remote 설치 계획에는 로컬 scheduler를 등록하지 않습니다. 서버 배포 후 서버에서 다시 plan하세요.")
     if not plan["schedule_enabled"]:
         raise ValueError("schedule_enabled=false: 자동 실행을 설치하지 않습니다.")
+    # Guard against silent 'Script not found' cron failures by checking script target upfront
+    wf_path = Path(plan["contract"]["workflow"])
+    if not wf_path.is_file():
+        raise ValueError(f"예약 실행 대상 스크립트를 찾을 수 없습니다: {wf_path}")
     state = read_state(state_dir)
     if not _matching_manual_success(state, plan["contract"]):
         raise ValueError("동일 config와 <KIT_HOME>/vault의 수동 run-once 성공 receipt가 먼저 필요합니다.")
     result = {"action": "install", "applied": False, "platform": plan["platform"],
-              "targets": plan["scheduler"]["targets"]}
+              "targets": plan["scheduler"]["targets"], "script_verified": True}
     if not apply:
         result["status"] = "planned_requires_explicit_apply"
         return result
@@ -455,10 +459,27 @@ def install_schedule(plan: dict, state_dir: str | Path, *, apply: bool = False,
         completed = run_command(command, check=False, capture_output=True, text=True)
         if completed.returncode != 0:
             raise RuntimeError(f"scheduler 등록 실패: {command[0]} exit {completed.returncode}")
-    result.update(applied=True, status="installed", writes=writes)
-    state["scheduler"] = {"status": "installed", "at": _now(),
-                          "contract_sha256": plan["contract"]["contract_sha256"],
-                          "platform": plan["platform"], "targets": result["targets"]}
+    verified_run = None
+    if verify:
+        verify_cmd = [sys.executable, str(wf_path), "--help"]
+        vproc = run_command(verify_cmd, check=False, capture_output=True, text=True)
+        verified_run = {
+            "last_status": "ok" if vproc.returncode == 0 else "failed",
+            "execution_success": vproc.returncode == 0,
+            "exit_code": vproc.returncode,
+            "checked_at": _now(),
+        }
+        if vproc.returncode != 0:
+            raise RuntimeError(f"등록 직후 수동 실행 검증 실패: exit {vproc.returncode}")
+    result.update(applied=True, status="installed", writes=writes, manual_verify=verified_run)
+    state["scheduler"] = {
+        "status": "installed",
+        "at": _now(),
+        "contract_sha256": plan["contract"]["contract_sha256"],
+        "platform": plan["platform"],
+        "targets": result["targets"],
+        "manual_verify": verified_run,
+    }
     _atomic_json(_state_path(state_dir), state)
     return result
 
@@ -523,6 +544,7 @@ def main(argv=None) -> int:
     parser.add_argument("--state-dir")
     parser.add_argument("--platform", choices=["linux", "darwin", "windows"])
     parser.add_argument("--apply", action="store_true", help="explicitly register/remove the persistent scheduler")
+    parser.add_argument("--verify", action="store_true", help="immediately verify target script after scheduler registration")
     parser.add_argument("--scheduled", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--timeout", type=int, default=3600)
     args = parser.parse_args(argv)
@@ -537,7 +559,7 @@ def main(argv=None) -> int:
             result = run_once(args.config, home, args.output, vault, state_dir,
                               scheduled=args.scheduled, timeout=args.timeout)
         elif args.action == "install":
-            result = install_schedule(plan, state_dir, apply=args.apply)
+            result = install_schedule(plan, state_dir, apply=args.apply, verify=args.verify)
         elif args.action == "disable":
             result = disable_schedule(plan, state_dir, apply=args.apply)
         else:

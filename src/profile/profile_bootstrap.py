@@ -233,27 +233,27 @@ def fetch_website(
     status, raw, err = sources.fetch_bytes(clean_url, kind, timeout=20, opener=opener)
     if status != "ok" or raw is None:
         if render_js:
-            fc = web_extract.scrape_with_firecrawl(clean_url, home=home, opener=opener)
-            if fc.get("status") == "ok" and fc.get("text"):
+            rendered = web_extract.render_js_page(clean_url, home=home, opener=opener)
+            if rendered.get("status") == "ok" and rendered.get("text"):
                 return ExtractedSource(
                     kind=kind,
-                    label=fc.get("title") or clean_url,
+                    label=rendered.get("title") or clean_url,
                     origin=clean_url,
                     status="ok",
-                    title=str(fc.get("title") or "")[:200],
-                    text=str(fc.get("text") or "")[:50000],
+                    title=str(rendered.get("title") or "")[:200],
+                    text=str(rendered.get("text") or "")[:50000],
                 )
         return ExtractedSource(kind=kind, label=clean_url, origin=clean_url, status=status, error=err or "페이지 조회 실패")
     primary = parse_html_document(raw, clean_url, kind)
     if render_js or web_extract.looks_like_js_shell(raw, primary.text):
-        fc = web_extract.scrape_with_firecrawl(clean_url, home=home, opener=opener)
-        if fc.get("status") == "ok" and fc.get("text"):
-            primary.text = str(fc["text"])[:50000]
-            if fc.get("title") and not primary.title:
-                primary.title = str(fc["title"])[:200]
+        rendered = web_extract.render_js_page(clean_url, home=home, opener=opener)
+        if rendered.get("status") == "ok" and rendered.get("text"):
+            primary.text = str(rendered["text"])[:50000]
+            if rendered.get("title") and not primary.title:
+                primary.title = str(rendered["title"])[:200]
                 primary.label = primary.title
-        elif fc.get("status") == "missing_key" and len(primary.text) < 200:
-            primary.error = "js_rendered_empty: " + str(fc.get("hint") or "FIRECRAWL_API_KEY 필요")
+        elif rendered.get("status") in ("missing_key", "js_renderer_unavailable") and len(primary.text) < 200:
+            primary.error = "js_rendered_empty: " + str(rendered.get("hint") or "Crawl4AI 또는 FIRECRAWL_API_KEY 필요")
     # Optionally enrich with up to max_subpages same-origin product/customers pages
     extra_texts: list[str] = []
     extra_headings = list(primary.headings)

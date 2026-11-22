@@ -13,9 +13,9 @@
 - **권장**: [Obsidian](https://obsidian.md) (결과 파이프라인과 초안을 한눈에 보고 수정할 때 사용)
 - **선택 (필요한 기능만 골라 `~/.hermes-outbound/.env`에 API 키 추가)**:
 
-| 사용하려는 기능 | `.env` 변수 이름 | 없으면 어떻게 되나요? |
+| 사용하려는 기능 | 권장 설정 (무료 우선) | 없으면 어떻게 되나요? |
 |---|---|---|
-| **JS/SPA 웹사이트 렌더링** (React·Next 홈페이지, 동적 대리점 목록) | `FIRECRAWL_API_KEY` | 일반 정적 HTML만 추출하고, 빈 SPA 페이지면 안내 메시지를 표시합니다 |
+| **JS/SPA 웹사이트 렌더링** (React·Next 홈페이지, 동적 대리점 목록) | **무료 오픈소스 Crawl4AI** (`pip install crawl4ai && crawl4ai-setup` 또는 로컬 Docker `CRAWL4AI_BASE_URL=http://127.0.0.1:11235`) → 로컬 Playwright → 선택 `FIRECRAWL_API_KEY` | 유료 API 없이 무료 로컬 렌더러를 우선 사용하며, 아무것도 없으면 일반 정적 HTML만 추출하고 설치 안내를 표시합니다 |
 | **이미지 공고 · 스캔 브로셔 인식** (사람인·잡코리아 이미지 JD, `.png/.jpg` 소개서) | 무료 로컬 `tesseract` 설치 또는 `OPENAI_API_KEY` / `OPENROUTER_API_KEY` | 이미지 URL만 수집하고 텍스트는 지어내지 않은 채 설치 안내를 표시합니다 |
 | **LinkedIn 회사·담당자 자동 소싱** | `APIFY_TOKEN` | 무료 Boolean X-Ray 검색 쿼리 + Sales Navigator CSV 가져오기로 동작합니다 |
 | **나라장터(G2B) 실시간 조회** | `DATA_GO_KR_API_KEY` | 공공데이터포털 무료 키. 없으면 샘플/파일 모드로 테스트할 수 있습니다 |
@@ -210,7 +210,57 @@ python3 outbound.py health --domain example.com
 
 ---
 
-## 6. 선택 효율화: TypeSafe AI Jev 연결하기
+## 6. 실전 영업 옵스 운영 (CRM Kanban · 볼트 감사 · G2B 차분 감시 · 데일리 브리핑)
+
+매일 영업 파이프라인을 굴릴 때 생기는 오탐·중복·보드 불일치·초안/발송 혼동을 막아주는 운영 도구입니다.
+
+### A. Obsidian Kanban 보드 동기화 & 볼트 무결성 자동 감사
+- LinkedIn 소싱 시 개인 리드는 `LinkedIn/{회사명}/{이름}.md`에 저장되며, **초안 작성(`메시지상태: 미발송`, `연락횟수: 0`)과 실제 발송 이력이 엄격히 분리**됩니다.
+- 공개 게시물이 없으면 상대 성향·문체를 추측하지 않고 사실 근거만 기록합니다.
+```sh
+# 1) 쉬운 한국어 영업 포지셔닝 · 경쟁사 판단 · 기록 기준 문서 4종 생성
+python3 outbound.py crm knowledge --config setup.json --vault ~/Documents/Hermes-GTM
+
+# 2) 실제 발송 후 단계 변경 + CRM Board.md 동시 동기화 (초안 수정만으로는 연락횟수 미증가)
+python3 outbound.py crm stage --vault ~/Documents/Hermes-GTM \
+  --note ~/Documents/Hermes-GTM/LinkedIn/예시기업/홍길동.md --to 컨택함 --mark-sent
+
+# 3) 볼트 무결성 전체 감사 (YAML 오류 · 보드 불일치 · 중복 URL/ID · 깨진 위키링크 · 표 열 깨짐 · 예시 리드 혼입)
+python3 outbound.py vault audit --vault ~/Documents/Hermes-GTM
+```
+
+### B. 나라장터(G2B) 발주계획 · 사전규격 · 입찰공고 기준선 차분 감시
+발주계획(초기 선제 신호)과 실제 입찰공고를 구분하고, 카페/편의시설 같은 잡음 오탐을 자동 제외합니다.
+```sh
+# 1) 초기 기준선 저장 (--initialize)
+python3 outbound.py g2b --keywords "의료후송,의료지원,비상대피" \
+  --stages order_plan,prespec,bid_notice --context-keywords "해외,파견,귀환" \
+  --initialize --vault ~/Documents/Hermes-GTM
+
+# 2) 이후 매일 실행: 신규·변경 항목만 추출해 원장 갱신
+python3 outbound.py g2b --keywords "의료후송,의료지원,비상대피" \
+  --stages order_plan,prespec,bid_notice --context-keywords "해외,파견,귀환" \
+  --vault ~/Documents/Hermes-GTM
+```
+
+### C. 경쟁사 역추적 마켓 인텔리전스 · 쉬운 한국어 문체 감사 · 데일리 브리핑
+```sh
+# 경쟁사 공개 사례 -> "돈을 쓴 문제" 역추적 -> 비슷한 타깃 큐(Lookalike-Queue.md) 생성
+python3 outbound.py intel --input ./competitor-signals.csv --competitor "GlobalCorp" --vault ~/Documents/Hermes-GTM
+
+# 영업 전략 문서·제안서의 어려운 컨설팅 표현 & 마크다운 표 열 깨짐 자동 감사
+python3 outbound.py copy lint --mode doc --file ~/Documents/Hermes-GTM/Knowledge/영업\ 포지셔닝.md
+
+# 오늘 현황 · 미발송 초안 · G2B · 경쟁사 신호 · 볼트 감사 데일리 브리핑
+python3 outbound.py briefing --vault ~/Documents/Hermes-GTM --text
+
+# 예약 실행 등록 직후 즉시 수동 검증까지 함께 실행
+python3 outbound.py operations install --config setup.json --apply --verify
+```
+
+---
+
+## 7. 선택 효율화: TypeSafe AI Jev 연결하기
 
 리드가 많아지거나 AI 초안 비용을 줄이고 싶을 때만 선택해서 켭니다.
 
@@ -228,13 +278,13 @@ python3 outbound.py health --domain example.com
 
 ---
 
-## 7. 자주 묻는 질문 (문제 해결)
+## 8. 자주 묻는 질문 (문제 해결)
 
 - **일부 채용 사이트가 `blocked(403/429)`로 뜹니다.**
   - 클라우드 서버 IP나 과도한 요청은 사이트에서 차단할 수 있습니다. `jobs_partial_ok: true`가 켜져 있으면 성공한 보드 결과만 안전하게 유지합니다. 로그인/CAPTCHA 우회는 하지 않으며, 필요 시 CSV `file` 모드로 가져올 수 있습니다.
-- **React/Next로 만든 회사 홈페이지가 빈 내용으로 나옵니다.**
-  - `~/.hermes-outbound/.env`에 `FIRECRAWL_API_KEY`를 추가하면 빈 SPA 페이지를 감지했을 때 자동으로 Firecrawl JS 렌더링으로 전환합니다.
+- **React/Next로 만든 회사 홈페이지가 빈 내용으로 나옵니다. 유료 Firecrawl이 꼭 필요한가요?**
+  - 아닙니다! **무료 오픈소스 Crawl4AI**(`pip install crawl4ai && crawl4ai-setup` 또는 로컬 Docker `CRAWL4AI_BASE_URL=http://127.0.0.1:11235`)나 로컬 **Playwright**가 설치되어 있으면 유료 키 없이 1순위로 자동 사용합니다. `FIRECRAWL_API_KEY`는 로컬 브라우저 설치가 번거로울 때만 쓰는 선택 옵션입니다.
 - **이미 수정한 Obsidian 노트가 덮어씌워질까 봐 걱정됩니다.**
-  - `GTM/Accounts/`의 `status`와 `## 사람 메모`, `Review/` 노트는 사람 소유 영역으로 보호되어 재실행해도 덮어쓰지 않습니다.
+  - `GTM/Accounts/`의 `status`와 `## 사람 메모`, `Review/` 노트, 그리고 이미 연락이 시작된 `LinkedIn/` 리드 노트는 사람 소유 영역으로 보호되어 재실행해도 덮어쓰지 않습니다.
 - **설정을 잘못 건드렸거나 다시 확인하고 싶습니다.**
   - `python3 outbound.py validate --config setup.json`으로 설정 오류를 바로 확인할 수 있고, `wizard.html` 왼쪽의 **"기존 setup.json 불러오기"** 버튼으로 불러와 고칠 수 있습니다.
