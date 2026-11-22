@@ -217,6 +217,42 @@ class TestPublicDataLensAndLiveMarketIntel(unittest.TestCase):
             self.assertEqual(out2["signal_count"], 2)
             self.assertEqual(out2["new_signals_count"], 1)
 
+    def test_runtime_connect_works_without_pyyaml_and_sources_is_modular(self):
+        import runtime_connect
+        import sources
+        import sources_ats
+        import sources_common
+        import sources_kr_jobs
+        import sources_signals
+
+        # Verify sources.py is now a slim facade (<350 lines) backed by focused modules
+        sources_lines = len((ROOT / "src" / "core" / "sources.py").read_text(encoding="utf-8").splitlines())
+        self.assertLess(sources_lines, 350)
+        self.assertIs(sources.collect_wanted, sources_kr_jobs.collect_wanted)
+        self.assertIs(sources.collect_ats_batch, sources_ats.collect_ats_batch)
+        self.assertIs(sources.collect_funding, sources_signals.collect_funding)
+        self.assertIs(sources.fetch_json, sources_common.fetch_json)
+
+        # Verify runtime_connect.apply_services works when PyYAML (_yaml) is None!
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            data = {
+                "services": ["groq", "composio", "firecrawl", "jev"],
+                "groq_audio_consent": True,
+                "composio_scope_ack": True,
+                "jev_enabled": True,
+            }
+            with mock.patch.object(runtime_connect, "_yaml", None):
+                res1 = runtime_connect.apply_services(data, home)
+                self.assertTrue((home / "config.yaml").is_file())
+                self.assertTrue((home / "outbound-connectors.json").is_file())
+                # Re-applying idempotently without PyYAML must read back config.yaml and succeed
+                res2 = runtime_connect.apply_services(data, home)
+                self.assertEqual(len(res1), len(res2))
+                loaded_cfg = runtime_connect._read_yaml(home / "config.yaml")
+                self.assertEqual(loaded_cfg["stt"]["provider"], "groq")
+                self.assertEqual(loaded_cfg["mcp_servers"]["composio"]["enabled"], True)
+
 
 if __name__ == "__main__":
     unittest.main()
