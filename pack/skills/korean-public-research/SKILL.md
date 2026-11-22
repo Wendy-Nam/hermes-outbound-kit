@@ -15,16 +15,32 @@ anything.
 
 ## Required tool and runtime status
 
-- Optional dependency: the Hermes MCP server named `public-data-lens` configured by
-  `python3 public_data_lens.py apply --home "$HERMES_HOME"` and enabled after a gateway restart.
-- Allowed MCP tools: `search_datasets`, `get_dataset`, `compare_datasets`,
-  `get_catalog_changes`, `get_catalog_stats`, `search_by_columns`,
-  `get_dataset_structure`, `build_data_plan`, and `get_context`.
-- Before relying on it, require `python3 public_data_lens.py probe` to report
-  `mcp_discovery_verified`. This verifies transport/tool discovery only, not useful query results.
-- If the server/tool is absent, say `public_data_lens_unavailable`. Do not invent a catalog hit,
-  install a third-party package, run `npx`, or switch to an unreviewed proxy.
-- D2B, S2B, G2B order-plan/sanction, and OpenDART adapters are not included in this skill.
+- **Public Data Lens (`python3 outbound.py lens`, free & no API key required)**:
+  Connects to `https://service.datahub.kr/projects/public-data-lens/mcp` (`Wendy-Nam/public-data-lens`, MIT)
+  with `X-Datanav-No-Log: 1` always enabled. Works both as a Hermes MCP server and as a direct CLI:
+  ```bash
+  # 1) Hermes MCP 서버 등록 및 연결 검증 (PyYAML 없이도 동작)
+  python3 outbound.py lens apply --home "$HERMES_HOME"
+  python3 outbound.py lens probe
+
+  # 2) 영업·리서치 목적 문장 -> 공공데이터 활용 계획 초안 생성 (build_data_plan, 결과는 항상 DRAFT)
+  python3 outbound.py lens plan-data "제조 스마트팩토리 잠재고객 발굴을 위해 공장등록·산업단지 공공데이터 결합 계획"
+
+  # 3) 키워드 또는 원본 컬럼명으로 ~9.6만 공공데이터셋 탐색
+  python3 outbound.py lens search "공장등록" --limit 10
+  python3 outbound.py lens columns "회사명,업종,소재지" --query "제조"
+  python3 outbound.py lens dataset <dataset_id> --view card
+  ```
+- **Built-in G2B 3-Stage Monitor (`python3 outbound.py g2b`)**:
+  When `DATA_GO_KR_API_KEY` is configured via `python3 outbound.py env set --key DATA_GO_KR_API_KEY`,
+  use `python3 outbound.py g2b` to monitor **발주계획(`order_plan`) · 사전규격(`prespec`) · 입찰공고(`bid_notice`)**
+  separately with baseline diff (`--initialize` then daily diff) and noise-exclusion filters:
+  ```bash
+  python3 outbound.py g2b --keywords "키워드1,키워드2" --stages order_plan,prespec,bid_notice \
+    --context-keywords "맥락1,맥락2" --initialize --vault ~/Documents/Hermes-GTM
+  ```
+  Always keep `public_dataset_catalog` (Public Data Lens) and `order_plan` (G2B advance plan) clearly separated from active `bid_notice` tenders.
+- D2B, S2B, sanction, and OpenDART adapters are not included in this skill.
 
 ## Privacy and access boundary
 

@@ -18,6 +18,18 @@ Produce a short, high-signal briefing from live reporting rather than a search-r
 
 This skill applies to daily or weekly news digests, scheduled world-news briefings, topic watchlists, and requests for the day's most important developments.
 
+## Outbound Kit Built-in CLI (`intel` & `briefing`)
+
+When running inside `hermes-outbound-kit`, use these commands for daily competitor intelligence and vault briefings:
+
+```bash
+# 1) Competitor reverse-engineering signals (RSS/web with Crawl4AI fallback, or CSV/JSON) -> Lookalike Queue
+python3 outbound.py intel --rss https://competitor.example.com/feed.xml --competitor "GlobalCorp" --vault ~/Documents/Hermes-GTM
+
+# 2) Daily outbound ops digest (CRM stages, unsent drafts, G2B new/changed, competitor signals, vault audit)
+python3 outbound.py briefing --vault ~/Documents/Hermes-GTM --text
+```
+
 ## Core Rules
 
 1. **Anchor the reporting window first.** Resolve the user's timezone and the exact cutoff time. Treat search-engine relative dates as coarse hints, then filter every candidate by its actual publication timestamp.

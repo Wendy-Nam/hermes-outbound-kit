@@ -48,8 +48,18 @@ metadata:
 `subjects[]`, `email_body`, `dm_body`, `evidence_used[]`, `claim_to_verify[]`, `qa[]`,
 `review_required=true`, `sent=false`.
 
+## 실행 도구 (`python3 outbound.py copy`)
+
+```bash
+# 1) 콜드메일·DM 초안 스팸어·과장·플레이스홀더 점검
+python3 outbound.py copy lint --subject "짧은 확인" --file ./draft.txt
+
+# 2) 영업 전략 문서·제안서의 어려운 컨설팅 표현 & 마크다운 표 열 깨짐 점검
+python3 outbound.py copy lint --mode doc --file ~/Documents/Hermes-GTM/Knowledge/영업\ 포지셔닝.md
+```
+
 ## 출처
 
 MIT 라이선스 GTMOS의 `write.md`, `validate-copy.md`, `cold-email-skill.md`, `TOV.md`, `BRIEFING.md`에서
 관찰 우선·간결성·단일 CTA·주장 검수 원칙을 참고해 작성했다. 자동 sequence 발송, LinkedIn 자동화,
-CRM 변경은 포함하지 않았다. 상세 출처와 라이선스는 `docs/REFERENCE-GTM.md`를 따른다.
+CRM 변경은 포함하지 않았다. 상세 출처와 라이선스는 `docs/reference/REFERENCE-GTM.md`를 따른다.

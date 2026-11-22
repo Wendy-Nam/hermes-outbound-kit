@@ -8,21 +8,21 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 
 | 단계 | 스킬 | 스크립트 | 비고 |
 |---|---|---|---|
-| 프로필 커스텀 | `profile-customizer` | `profile.py`, `profile_bootstrap.py`, `style_analyzer.py` | 직군 프리셋(8종), 브로셔/홈페이지 분석, 개인 발신메일함 톤·구조 분석, DNC/ATS 관리 |
-| 타깃 정의 | `gtm-icp-brief` | — | ICP 필수·가점·제외 조건 |
+| 프로필 커스텀 | `profile-customizer` | `outbound.py profile`, `outbound.py env` | 직군 프리셋(10종), 브로셔/홈페이지 분석(Crawl4AI/OCR), 개인 발신메일함 문체 분석, DNC/ATS 관리 |
+| 타깃 정의 | `gtm-icp-brief` | — | ICP 필수·가점·제외 조건, 무형 서비스 엔드유저 vs 구매 의사결정자 분리 |
 | 계정 발굴 | `lead-prospecting` | `lead_scorer.py` | 도입사례 → 경쟁사·생태계 확장 → BANT → 제안 개요 |
 | 계정 발굴 | `funding-signal-search` | `funding_search.py` | Platum·VentureSquare 투자 기사(공개 WordPress API) |
-| 채용 신호 | `wanted-search`, `kr-search`, `ats-search` | 각 1개 | 원티드(상세 JD)·사람인·잡코리아·점핏·Greenhouse/Lever/Ashby/Greeting |
+| 채용 신호 | `wanted-search`, `kr-search`, `ats-search` | 각 1개 | 원티드(상세 JD)·사람인·잡코리아(이미지 OCR)·점핏·Greenhouse/Lever/Ashby/Greeting |
 | 채용 신호 | `hiring-signal-enrich` | `hiring_enrich.py` | 계정 후보별 원티드 공고 수·직무 |
-| 채용 신호 | `sales-job-sourcing` | — | 키트 `workflow.py` 멀티 보드 수집 흐름 안내 |
+| 채용 신호 | `sales-job-sourcing` | — | 키트 `outbound.py run` 멀티 보드 수집 흐름 안내 |
 | 뉴스·공개 신호 | `naver-news-search` | — | 제3자 k-skill 공개 프록시 경유(아래 참고) |
-| 뉴스·공개 신호 | `news-monitoring-briefing`, `buying-signals`, `korean-public-research`, `overseas-partner-research` | — | |
+| 뉴스·공개 신호 | `news-monitoring-briefing`, `buying-signals`, `korean-public-research`, `overseas-partner-research` | `outbound.py g2b`, `outbound.py intel`, `outbound.py briefing`, `outbound.py overseas` | 나라장터 3단계 차분 감시, 경쟁사 역추적(RSS/웹), 데일리 브리핑, 해외 엔드유저/대리점 |
 | 리서치 | `prospect-research`, `web-reader` | — | 사람·회사 공개 정보, 본문 추출(Jina Reader) |
 | 우선순위 | `outbound-scoring` | `account_score.py`, `signals_to_accounts.py` | 적합도×긴급도(투자·채용·임원 발언·행사·경쟁사), 선택 TypeSafe AI Jev 고속 보정 |
-| 초안 | `evidence-to-outreach`, `signal-outreach-draft`, `linkedin-cold-messaging` | `signal_outreach.py` | 담백한 3~4줄 실무 초안 + 1줄 수정 메모, 사람 검토 후 직접 발송 |
+| 초안 | `evidence-to-outreach`, `signal-outreach-draft`, `linkedin-cold-messaging` | `signal_outreach.py`, `outbound.py linkedin` | 담백한 3~4줄 실무 초안 + 초안/연락이력 분리, 사람 검토 후 직접 발송 |
 | 문체 | `korean-humanizer` | — | 번역체·AI 상투어 교정 |
-| 검수 | `gtm-list-qa`, `gtm-copy-qa` | — | |
-| 추적 | `account-crm` | `account_crm.py` | 발굴→접촉→응답→미팅→제안→계약, `workflow.py` 실행 시 자동 연동(사람 메모 보존) |
+| 검수 | `gtm-list-qa`, `gtm-copy-qa` | `outbound.py copy` | 콜드메일 스팸어 린트 + 영업 전략 문서 쉬운 한국어 문체·표 열 감사(`--mode doc`) |
+| 추적 | `account-crm` | `account_crm.py`, `outbound.py crm`, `outbound.py transcribe` | 파이프라인·Obsidian Kanban 동기화·볼트 감사·Plaud/Groq 미팅 녹음 전사 |
 
 ## Obsidian 볼트에 남는 것
 
@@ -31,9 +31,10 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 
 | 위치 | 만드는 것 | 사람이 바꾸는 것 |
 |---|---|---|
-| `Dashboard.md`, `Accounts/ Evidence/ Scores/ Drafts/ Review/ Runs/` | 키트 기본 흐름(`workflow.py`, 예약 실행) | Review 노트의 승인 |
-| `GTM/Accounts/<회사>.md`, `GTM/Pipeline.md` | `workflow.py` 자동 동기화 + `account-crm` | `status` 속성, `## 사람 메모` |
-| `GTM/Drafts/<회사>.md` | `workflow.py` 자동 동기화 + `signal-outreach-draft` | `review` 속성, `## 사람 메모` |
+| `Dashboard.md`, `Accounts/ Evidence/ Scores/ Drafts/ Review/ Runs/` | 키트 기본 흐름(`outbound.py run`, 예약 실행) | Review 노트의 승인 |
+| `GTM/Accounts/<회사>.md`, `GTM/Pipeline.md` | `outbound.py run` 자동 동기화 + `account-crm` | `status` 속성, `## 사람 메모` |
+| `GTM/Drafts/<회사>.md` | `outbound.py run` 자동 동기화 + `signal-outreach-draft` | `review` 속성, `## 사람 메모` |
+| `LinkedIn/<회사>/<이름>.md`, `CRM Board.md`, `Knowledge/`, `Daily/` | `outbound.py linkedin`, `outbound.py crm`, `outbound.py briefing` | 이미 연락된 리드의 단계·연락 이력 |
 
 자동 갱신은 표식(`<!-- hermes-outbound:... -->`)이 있는 노트의 기계 영역만 바꿉니다. 사람이 만든 같은 이름 노트는 건너뜁니다.
 
@@ -43,11 +44,12 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 
 | 파일 | 용도 | 시작 방법 |
 |---|---|---|
-| `$HERMES_HOME/sales-profile.json` | `outbound-scoring` 채점 기준 | `profile.py init/sync` 또는 설치 답변으로 자동 생성. 재설치해도 덮지 않음 |
-| `$HERMES_HOME/writing-style.json` | 개인 발신메일함 문체·구조 프로파일(익명화) | `profile.py style --mbox ... --apply`로 생성. 초안·프롬프트에 자동 반영 |
-| `$HERMES_HOME/do-not-contact.txt` | 연락 금지 회사(DNC) | `profile.py dnc --add "회사명"` 또는 직접 편집. 초안·파이프라인에서 자동 제외 |
-| `$HERMES_HOME/sender-profile.json` | 발신자 이름·회사·직함·문체·CTA | `profile.py init/customize/sync`로 자동 관리 |
+| `$HERMES_HOME/sales-profile.json` | `outbound-scoring` 채점 기준 | `python3 outbound.py profile init/sync`로 자동 생성. 재설치해도 덮지 않음 |
+| `$HERMES_HOME/writing-style.json` | 개인 발신메일함 문체·구조 프로파일(익명화) | `python3 outbound.py profile style --mbox ... --apply`로 생성 |
+| `$HERMES_HOME/do-not-contact.txt` | 연락 금지 회사(DNC) | `python3 outbound.py profile dnc --add "회사명"` 또는 직접 편집 |
+| `$HERMES_HOME/sender-profile.json` | 발신자 이름·회사·직함·문체·CTA | `python3 outbound.py profile init/customize/sync`로 자동 관리 |
 | `$HERMES_HOME/ats-targets.json` | 멀티 ATS 일괄 스캔 대상 회사 | `python3 outbound.py profile ats --add "greeting:slug:회사명"`으로 관리 |
+| `$HERMES_HOME/.env` | 선택 API 키 (0600 권한) | `python3 outbound.py env status` / `env set --key ...`로 안전 관리 |
 | `$HERMES_HOME/gtm/accounts.json` | `account-crm` 장부(볼트가 없을 때만) | 처음 `--ingest` 때 자동 생성 |
 
 이 파일들에는 연락처·영업 데이터가 들어가므로 공유하거나 커밋하지 않습니다.
@@ -62,13 +64,15 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 
 ## 출처와 라이선스
 
-| 스킬 | 출처 | 라이선스 | 변경 |
+| 스킬 / 모듈 | 출처 | 라이선스 | 변경 |
 |---|---|---|---|
 | `outbound-scoring`, `lead-prospecting` | 작성자 개인 Hermes 구성의 세일즈 스킬 | MIT (이 키트) | 개인 메타데이터 제거, 설정을 YAML → JSON(표준 라이브러리), 사용자 설정 경로 추가 |
 | `prospect-research`, `linkedin-cold-messaging`, `news-monitoring-briefing` | 작성자 개인 Hermes 구성(Hermes Agent 기반 스킬) | MIT | 실제 인물 예시 익명화, 관련 스킬 링크 정리 |
 | `korean-humanizer`, `naver-news-search` | k-skill 공개 스킬(작성자 구성 경유) | MIT, 영어 패턴은 blader/humanizer MIT (`references/humanizer-LICENSE`) | 경로·실제 회사 예시 정리, 제3자 프록시 고지 추가 |
 | `funding-signal-search`, `hiring-signal-enrich`, `signal-outreach-draft`, `account-crm` | 작성자의 투자 기업 발굴 키트 | MIT, Copyright (c) 2026 Wendy Nam | 헤드헌팅 BD용을 GTM 계정 발굴용으로 재구성: 채점은 `outbound-scoring`으로 통합, 초안은 내 제품 소개로, CRM은 계정 파이프라인으로 |
 | `wanted-search`, `kr-search`, `ats-search`, `web-reader` | `Wendy-Nam/hermes-job-hunt-for-korean` | MIT, Copyright (c) 2026 Wendy Nam | 구직자용 기본 필터(주니어만)를 영업용 전체 직급으로, 조회 실패를 0건과 구분 |
+| `audio_transcribe.py` (`outbound.py transcribe`, `meeting post --audio-file`) | `Wendy-Nam/Plaud-Groq-transcribe` | MIT | Cloudflare UA·재시도·24MB 초과 ffmpeg 자동 분할 + 미팅 후 리캡 파이프라인 통합 |
+| `public_data_lens.py` (`outbound.py lens`) | `Wendy-Nam/public-data-lens` | MIT | 무인증·No-Log(`X-Datanav-No-Log: 1`) MCP 설정(PyYAML 무의존) + 9.6만 공공데이터셋 검색·컬럼 탐색·활용계획(`build_data_plan`) 직접 CLI 통합 |
 
 옮기지 않은 것: 개인 브랜딩 글쓰기 스킬, 개인 서버 전용 경로에 묶인 스킬, 일상·메신저·미디어 스킬,
 메모리·볼트·프로필 데이터, 구직자용 이력서·자기소개서·면접 스킬(필요하면 `hermes-job-hunt-for-korean`을

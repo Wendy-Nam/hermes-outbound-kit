@@ -1,21 +1,24 @@
 # Obsidian 단계별 아웃바운드 볼트
 
 이 기능은 Obsidian의 기본 Markdown 링크만 사용합니다. Dataview 등 community plugin은 필요하지
-않으며 Obsidian GUI를 자동 설치하지 않습니다. `vault_flow.py`는 노트와 실행 receipt를 만들 뿐,
+않으며 Obsidian GUI를 자동 설치하지 않습니다. `python3 outbound.py vault`는 노트와 실행 receipt를 만들 뿐,
 메일이나 DM을 보내지 않습니다.
 
-## 1. 볼트 초기화
+## 1. 볼트 초기화 · 무결성 감사 · Kanban 동기화
 
 macOS/Linux:
 
 ```sh
-python3 vault_flow.py init --vault "$HOME/Documents/Hermes-GTM"
+python3 outbound.py vault init --vault "$HOME/Documents/Hermes-GTM"
+python3 outbound.py crm knowledge --config setup.json --vault "$HOME/Documents/Hermes-GTM"
+python3 outbound.py vault audit --vault "$HOME/Documents/Hermes-GTM"
 ```
 
 Windows PowerShell:
 
 ```powershell
-py -3 vault_flow.py init --vault "$HOME\Documents\Hermes-GTM"
+py -3 outbound.py vault init --vault "$HOME\Documents\Hermes-GTM"
+py -3 outbound.py vault audit --vault "$HOME\Documents\Hermes-GTM"
 ```
 
 이미 파일이 있는 디렉터리를 사용할 수 있지만, 러너는 자신의 marker가 없는 동일 경로 파일을
@@ -24,8 +27,8 @@ py -3 vault_flow.py init --vault "$HOME\Documents\Hermes-GTM"
 ## 2. 합성 fixture로 흐름 확인
 
 ```sh
-python3 vault_flow.py run --vault "$HOME/Documents/Hermes-GTM"
-python3 vault_flow.py status --vault "$HOME/Documents/Hermes-GTM"
+python3 outbound.py vault run --vault "$HOME/Documents/Hermes-GTM"
+python3 outbound.py vault status --vault "$HOME/Documents/Hermes-GTM"
 ```
 
 `--input`을 생략하면 `pack/vault/seed/normalized-records.json`의 합성 데이터만 사용합니다.
@@ -34,7 +37,7 @@ python3 vault_flow.py status --vault "$HOME/Documents/Hermes-GTM"
 ## 3. 실제 수집기의 정규화 결과 연결
 
 ```sh
-python3 vault_flow.py run \
+python3 outbound.py vault run \
   --vault "$HOME/Documents/Hermes-GTM" \
   --input output/job-postings.json
 ```

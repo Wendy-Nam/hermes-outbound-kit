@@ -24,25 +24,31 @@ metadata:
 - 공개 정보만 사용하며, 메시지에 필요 이상의 개인정보를 복사하지 않는다.
 - 개인화 근거가 부족하면 억지로 작성하지 말고 추가 공개 출처를 조사하거나 보류한다.
 
-## 실행 파이프라인 (`linkedin_outbound.py`)
+## 실행 파이프라인 (`python3 outbound.py linkedin`)
 
-`setup.json`의 ICP를 기반으로 **Boolean X-Ray 검색 쿼리 → Apify LinkedIn Company & 담당자(People) 소싱 → ICP 채점/DNC 필터 → 워밍업 플랜(3~6일) → 300자 연결 요청 & 1촌 DM 시퀀스 → Obsidian `LinkedIn/Queue.md`**까지 한 번에 생성한다.
+`setup.json`의 ICP를 기반으로 **Boolean X-Ray 검색 쿼리 → Apify LinkedIn Company & 담당자(People) 소싱 → ICP 채점/DNC 필터 → 워밍업 플랜(3~6일) → 300자 연결 요청 & 1촌 DM 시퀀스 → Obsidian `LinkedIn/{회사명}/{이름}.md` + `CRM Board.md`**까지 한 번에 생성한다.
 
 ```bash
 # 1) ICP 기반 X-Ray 쿼리 & Apify Actor 입력 JSON 생성
-python3 linkedin_outbound.py xray --config setup.json
+python3 outbound.py linkedin xray --config setup.json
 
 # 2) Apify 공식 API(APIFY_TOKEN은 $HERMES_HOME/.env에만 저장)로 회사 -> 의사결정자 소싱
-python3 linkedin_outbound.py run \
+python3 outbound.py linkedin run \
   --config setup.json --home "$HERMES_HOME" --vault ~/Documents/Hermes-GTM \
   --apify-company-actor <owner/company-actor> \
   --apify-people-actor <owner/people-actor> \
   --max-companies 20 --max-people 40
 
 # 3) 또는 Sales Navigator CSV / Apify JSON 파일로 오프라인 실행
-python3 linkedin_outbound.py run \
+python3 outbound.py linkedin run \
   --config setup.json --home "$HERMES_HOME" --vault ~/Documents/Hermes-GTM \
   --contacts-file ./sales-nav-export.csv
+
+# 4) 실제 발송 후에만 단계·연락이력 갱신 + CRM Board 동기화 & 볼트 감사
+python3 outbound.py crm stage --vault ~/Documents/Hermes-GTM \
+  --note ~/Documents/Hermes-GTM/LinkedIn/회사명/이름.md --to 컨택함 --mark-sent
+python3 outbound.py vault audit --vault ~/Documents/Hermes-GTM
 ```
 
+- **초안 작성과 실제 연락 이력을 엄격히 분리한다** (`메시지상태: 미발송`, `연락횟수: 0`). 공개 게시물이 없으면 성향·문체를 추정하지 않는다.
 - 자동 발송 및 로그인/쿠키 우회는 하지 않는다. 생성된 워밍업 체크리스트와 300자 연결 요청·DM 초안을 사람이 검토 후 직접 발송한다.

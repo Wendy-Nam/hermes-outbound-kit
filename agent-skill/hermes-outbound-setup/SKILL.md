@@ -158,8 +158,8 @@ python3 outbound.py start --help
 python3 outbound.py start
 ```
 
-Windows는 `py -3`을 사용합니다. 계정 연결 없이 첫 연습 결과부터 보려면 `python3 start.py --offline`을
-사용합니다. 기존 설정은 덮어쓰지 않고 `start.py`가 재개합니다. `prepare.py`와 `wizard.html`은 설정만
+Windows는 `py -3`을 사용합니다. 계정 연결 없이 첫 연습 결과부터 보려면 `python3 outbound.py start --offline`을
+사용합니다. 기존 설정은 덮어쓰지 않고 `outbound.py start`가 재개합니다. `prepare.py`와 `wizard.html`은 설정만
 따로 만들 때 쓰는 대안이며 설치 완료가 아닙니다.
 
 ## 6단계 — 보여주고 실행하기
@@ -167,7 +167,7 @@ Windows는 `py -3`을 사용합니다. 계정 연결 없이 첫 연습 결과부
 적용 전에 설치 장소, 전용 폴더, 시나리오, 데이터 방법, 모델, 대화 장소, 결과 폴더, 예약 여부를
 요약합니다. 비용과 사용자 로그인이 필요한 단계도 표시합니다.
 
-`installer.py --help`에서 현재 단계를 확인하고 `plan`을 먼저 실행합니다. local과 remote를 섞지
+`python3 outbound.py installer --help`에서 현재 단계를 확인하고 `plan`을 먼저 실행합니다. local과 remote를 섞지
 않습니다. 각 결과를 저장하고 실패 지점에서 재개합니다.
 
 초보자에게는 내부 구현어 대신 다음 화면 기준으로 안내하세요.

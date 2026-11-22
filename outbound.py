@@ -15,6 +15,7 @@
   python3 outbound.py g2b --keywords ...           # 나라장터 발주계획·사전규격·입찰공고 기준선 차분 감시
   python3 outbound.py intel --input ... --vault ... # 경쟁사 역추적 마켓 인텔리전스 원장 & 비슷한 타깃 큐
   python3 outbound.py briefing --vault ...         # 오늘 현황 · 미발송 초안 · G2B · 감사 데일리 브리핑
+  python3 outbound.py env status|set ...           # .env API 키 안전 입력 & 무료 Crawl4AI/tesseract 진단
   python3 outbound.py services status ...          # 외부 API 키 서비스(Crawl4AI/Firecrawl/Apify/Webshare/Jev 등) 점검
   python3 outbound.py jev status|probe             # TypeSafe AI Jev 연결 점검
 """
@@ -34,6 +35,7 @@ COMMANDS: dict[str, tuple[str, list[str], str]] = {
     "start": ("start", [], "대화형 초기 설정 및 실행 (--offline 지원)"),
     "setup": ("installer", ["setup"], "전체 설치·샘플·볼트 자동 실행 (--offline 지원)"),
     "installer": ("installer", [], "단계별 설치 실행기 (plan/setup/resume/run/status/diagnose)"),
+    "env": ("env_helper", [], ".env API 키 숨김 저장(set/unset) & 무료 Crawl4AI·tesseract 도구 진단(status)"),
     "kit": ("kit", [], "설정 검증·스킬 설치·모델·채널·진단 (validate/install/doctor/chat/gateway)"),
     "validate": ("kit", ["validate"], "setup.json 유효성 검사"),
     "install": ("kit", ["install"], "$HERMES_HOME에 25개 스킬·10종 프리셋 설치"),
@@ -43,6 +45,7 @@ COMMANDS: dict[str, tuple[str, list[str], str]] = {
     "workflow": ("workflow", [], "워크플로 전체 명령 (run / draft-import)"),
     "sources": ("sources", [], "개별 공고·투자·조달·해외 소스 수집기"),
     "g2b": ("g2b_monitor", [], "나라장터 발주계획·사전규격·입찰공고 기준선 차분 감시 & 잡음 제외"),
+    "lens": ("public_data_lens", [], "공공데이터 렌즈(Public Data Lens) 무료無인증 MCP 연결 & 9.6만 데이터셋·활용계획(plan-data) 탐색"),
     "linkedin": ("linkedin_outbound", [], "LinkedIn ICP -> Apify 회사·담당자 소싱 -> 워밍업·300자 DM"),
     "overseas": ("distributor_finder", [], "해외 B2B 엔드유저(--mode end_user) & 대리점(--mode distributor) 발굴"),
     "intel": ("market_intel", [], "경쟁사 역추적 마켓 인텔리전스 원장 & 비슷한 타깃 발굴 큐"),
@@ -50,7 +53,8 @@ COMMANDS: dict[str, tuple[str, list[str], str]] = {
     "briefing": ("daily_briefing", [], "오늘 리드·미발송 초안·G2B·경쟁사 신호·볼트 감사 데일리 브리핑"),
     "copy": ("copy_guard", [], "스팸어·쉬운 한국어 문서 문체 린터(lint --mode doc) & 1~4차 멀티터치 시퀀스"),
     "replies": ("reply_tracker", [], "답장 11라벨 분류 · 긍정 회신율 · 자동 DNC 차단 · LEARNINGS 누적"),
-    "meeting": ("meeting_and_health", [], "미팅 전 1장 브리핑(prep) · 미팅 후 리캡(post)"),
+    "meeting": ("meeting_and_health", [], "미팅 전 1장 브리핑(prep) · 미팅 후 리캡/Plaud 녹음 전사(post --audio-file)"),
+    "transcribe": ("audio_transcribe", [], "Plaud·미팅 녹음(.mp3/.m4a/.wav) 무료 Groq Whisper 한국어 전사"),
     "health": ("meeting_and_health", ["health"], "발신 도메인 MX / SPF / DKIM / DMARC 헬스체크"),
     "jev": ("jev_client", [], "TypeSafe AI Jev 고속 채점·검수 연결 확인 (status/probe)"),
     "services": ("services", [], "선택 외부 서비스(Firecrawl/Apify/Webshare/Jev/Groq/Composio) 상태 점검"),
