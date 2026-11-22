@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""Optional JS/SPA rendering (Firecrawl) and image OCR/Vision extraction.
+"""Open-source-first JS/SPA rendering (Crawl4AI -> Playwright -> optional Firecrawl)
+and 3-tier image OCR/Vision extraction (local tesseract -> optional Vision API).
 
 Zero mandatory third-party dependencies:
-- JS rendering uses Firecrawl (/v1/scrape) only when FIRECRAWL_API_KEY is present
-  in the environment or $HERMES_HOME/.env.
-- Image text extraction uses a transparent 3-tier fallback:
-  1) Local free `tesseract` binary (`kor+eng` -> `eng`) if installed on PATH
-  2) Optional OpenAI / OpenRouter Vision API if OPENAI_API_KEY or OPENROUTER_API_KEY
-     is configured in the environment or $HERMES_HOME/.env
-  3) Explicit `ocr_unavailable` status with actionable setup hints (never fabricating text)
+- JS rendering waterfall (only triggered on empty SPA shells or explicit render_js=True):
+  1) Free open-source Crawl4AI:
+     - Self-hosted Crawl4AI Docker/HTTP (`CRAWL4AI_BASE_URL`, e.g. http://127.0.0.1:11235)
+     - Local Crawl4AI CLI (`crwl`)
+     - Local Python `crawl4ai` package
+  2) Free local Playwright (`playwright` Python package, headless Chromium)
+  3) Optional hosted Firecrawl API (`FIRECRAWL_API_KEY` in env or $HERMES_HOME/.env)
+  4) Explicit `js_renderer_unavailable` status with free Crawl4AI install instructions
+- Image text extraction waterfall:
+  1) Local free `tesseract` binary (`kor+eng` -> `eng`)
+  2) Optional OpenAI / OpenRouter Vision API (`OPENAI_API_KEY` / `OPENROUTER_API_KEY`)
+  3) Explicit `ocr_unavailable` status with actionable hints (never fabricating text)
 
 Never bypasses login walls, CAPTCHAs, or paywalls.
 """
@@ -22,6 +28,7 @@ import src as _src_bootstrap  # noqa: E402,F401
 
 import base64
 import html as html_lib
+import importlib.util
 import ipaddress
 import json
 import mimetypes
@@ -30,6 +37,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from typing import Any, Sequence
 import urllib.error
@@ -79,7 +87,7 @@ def _read_dotenv(path: Path) -> dict[str, str]:
 
 
 def resolve_env_key(names: Sequence[str], home: str | Path | None = None) -> str:
-    """Resolve an API key from process env or $HERMES_HOME/.env without leaking it."""
+    """Resolve an API key or service URL from process env or $HERMES_HOME/.env."""
     for name in names:
         val = (os.environ.get(name) or "").strip()
         if val:
@@ -150,6 +158,195 @@ def _validate_public_http_url(url: str) -> str:
     return parsed.geturl()
 
 
+def _extract_crawl4ai_markdown(value: Any) -> str:
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, dict):
+        for key in ("fit_markdown", "raw_markdown", "markdown_with_citations", "markdown"):
+            if isinstance(value.get(key), str) and value[key].strip():
+                return value[key].strip()
+    return ""
+
+
+def scrape_with_crawl4ai(
+    url: str,
+    *,
+    base_url: str = "",
+    home: str | Path | None = None,
+    timeout: int = 45,
+    opener=None,
+) -> dict[str, Any]:
+    """Render a public JS/SPA page using free open-source Crawl4AI.
+
+    Priority:
+    1) Self-hosted Crawl4AI HTTP endpoint (`CRAWL4AI_BASE_URL`, e.g. http://127.0.0.1:11235)
+    2) Local `crwl` CLI binary on PATH
+    3) Local Python `crawl4ai` package (`AsyncWebCrawler`)
+    """
+    clean_url = _validate_public_http_url(url)
+    endpoint_base = (base_url or "").strip() or resolve_env_key(("CRAWL4AI_BASE_URL",), home=home)
+
+    # 1) Self-hosted Crawl4AI HTTP API (Docker / local service)
+    if endpoint_base:
+        parsed_ep = urllib.parse.urlsplit(endpoint_base)
+        if parsed_ep.scheme in ("http", "https") and parsed_ep.hostname:
+            crawl_url = endpoint_base.rstrip("/") + "/crawl"
+            headers = {"Content-Type": "application/json", "Accept": "application/json"}
+            token = resolve_env_key(("CRAWL4AI_API_TOKEN",), home=home)
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            req = urllib.request.Request(
+                crawl_url,
+                data=json.dumps({"urls": [clean_url], "priority": 5}).encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+            open_fn = opener.open if opener is not None else urllib.request.urlopen
+            try:
+                with open_fn(req, timeout=timeout) as resp:
+                    raw = resp.read(MAX_API_BYTES + 1)
+                    if len(raw) <= MAX_API_BYTES:
+                        body = json.loads(raw.decode("utf-8", errors="replace"))
+                        results = body.get("results") if isinstance(body, dict) else None
+                        item = results[0] if isinstance(results, list) and results else (body.get("result") if isinstance(body, dict) else None)
+                        if isinstance(item, dict):
+                            md = _extract_crawl4ai_markdown(item.get("markdown") or item.get("markdown_v2"))
+                            html_out = str(item.get("cleaned_html") or item.get("html") or "").strip()
+                            meta = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+                            title = str(meta.get("title") or "").strip()
+                            text = md or (_strip_visible_text(html_out) if html_out else "")
+                            if text:
+                                return {
+                                    "status": "ok",
+                                    "provider": "crawl4ai_http",
+                                    "url": clean_url,
+                                    "title": title,
+                                    "markdown": md,
+                                    "html": html_out,
+                                    "text": text,
+                                }
+            except Exception:
+                pass
+
+    # 2) Local Crawl4AI CLI (`crwl`)
+    crwl_bin = shutil.which("crwl")
+    if crwl_bin:
+        try:
+            proc = subprocess.run(
+                [crwl_bin, clean_url, "-o", "markdown"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            if proc.returncode == 0 and proc.stdout.strip():
+                md = proc.stdout.strip()[:MAX_API_BYTES]
+                return {
+                    "status": "ok",
+                    "provider": "crawl4ai_cli",
+                    "url": clean_url,
+                    "title": "",
+                    "markdown": md,
+                    "html": "",
+                    "text": md,
+                }
+        except Exception:
+            pass
+
+    # 3) Local Python `crawl4ai` package
+    if importlib.util.find_spec("crawl4ai") is not None:
+        snippet = (
+            "import asyncio, json, sys\n"
+            "from crawl4ai import AsyncWebCrawler\n"
+            "async def _run(u):\n"
+            "    async with AsyncWebCrawler() as c:\n"
+            "        r = await c.arun(url=u)\n"
+            "        md = getattr(r, 'markdown', '')\n"
+            "        if not isinstance(md, str):\n"
+            "            md = getattr(md, 'raw_markdown', '') or str(md)\n"
+            "        print(json.dumps({'markdown': md, 'html': getattr(r, 'cleaned_html', '') or ''}, ensure_ascii=False))\n"
+            "asyncio.run(_run(sys.argv[1]))\n"
+        )
+        try:
+            proc = subprocess.run(
+                [sys.executable, "-c", snippet, clean_url],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            if proc.returncode == 0 and proc.stdout.strip():
+                data = json.loads(proc.stdout.strip().splitlines()[-1])
+                md = str(data.get("markdown") or "").strip()
+                html_out = str(data.get("html") or "").strip()
+                text = md or (_strip_visible_text(html_out) if html_out else "")
+                if text:
+                    return {
+                        "status": "ok",
+                        "provider": "crawl4ai_python",
+                        "url": clean_url,
+                        "title": "",
+                        "markdown": md,
+                        "html": html_out,
+                        "text": text,
+                    }
+        except Exception:
+            pass
+
+    return {
+        "status": "unavailable",
+        "provider": "crawl4ai",
+        "url": clean_url,
+        "title": "",
+        "markdown": "",
+        "html": "",
+        "text": "",
+    }
+
+
+def scrape_with_playwright(url: str, *, timeout: int = 40) -> dict[str, Any]:
+    """Optional free local Playwright fallback when installed."""
+    clean_url = _validate_public_http_url(url)
+    if importlib.util.find_spec("playwright") is None:
+        return {"status": "unavailable", "provider": "playwright", "url": clean_url, "title": "", "markdown": "", "html": "", "text": ""}
+    snippet = (
+        "import json, sys\n"
+        "from playwright.sync_api import sync_playwright\n"
+        "with sync_playwright() as p:\n"
+        "    b = p.chromium.launch(headless=True)\n"
+        "    page = b.new_page()\n"
+        "    page.goto(sys.argv[1], wait_until='networkidle', timeout=25000)\n"
+        "    out = {'title': page.title(), 'html': page.content(), 'text': page.inner_text('body')}\n"
+        "    b.close()\n"
+        "    print(json.dumps(out, ensure_ascii=False))\n"
+    )
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", snippet, clean_url],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            data = json.loads(proc.stdout.strip().splitlines()[-1])
+            text = str(data.get("text") or "").strip()
+            html_out = str(data.get("html") or "").strip()
+            if text or html_out:
+                return {
+                    "status": "ok",
+                    "provider": "playwright",
+                    "url": clean_url,
+                    "title": str(data.get("title") or "").strip(),
+                    "markdown": "",
+                    "html": html_out,
+                    "text": text or _strip_visible_text(html_out),
+                }
+    except Exception:
+        pass
+    return {"status": "unavailable", "provider": "playwright", "url": clean_url, "title": "", "markdown": "", "html": "", "text": ""}
+
+
 def scrape_with_firecrawl(
     url: str,
     *,
@@ -159,7 +356,7 @@ def scrape_with_firecrawl(
     timeout: int = 30,
     opener=None,
 ) -> dict[str, Any]:
-    """Render a public JS/SPA page via Firecrawl /v1/scrape using FIRECRAWL_API_KEY."""
+    """Render a public JS/SPA page via optional Firecrawl /v1/scrape using FIRECRAWL_API_KEY."""
     clean_url = _validate_public_http_url(url)
     key = (api_key or "").strip() or resolve_env_key(("FIRECRAWL_API_KEY",), home=home)
     if not key:
@@ -171,7 +368,7 @@ def scrape_with_firecrawl(
             "markdown": "",
             "html": "",
             "text": "",
-            "hint": "JS/SPA 페이지 자동 렌더링을 쓰려면 $HERMES_HOME/.env에 FIRECRAWL_API_KEY를 추가하세요.",
+            "hint": "JS/SPA 페이지 렌더링을 쓰려면 무료 Crawl4AI(pip install crawl4ai && crawl4ai-setup) 또는 선택적으로 $HERMES_HOME/.env의 FIRECRAWL_API_KEY를 설정하세요.",
         }
     payload = {
         "url": clean_url,
@@ -256,6 +453,50 @@ def scrape_with_firecrawl(
         "markdown": markdown,
         "html": html_out,
         "text": text,
+    }
+
+
+def render_js_page(
+    url: str,
+    *,
+    home: str | Path | None = None,
+    formats: Sequence[str] = ("markdown", "html"),
+    timeout: int = 45,
+    opener=None,
+) -> dict[str, Any]:
+    """Open-source-first JS rendering waterfall: Crawl4AI -> Playwright -> optional Firecrawl."""
+    clean_url = _validate_public_http_url(url)
+
+    # 1) Free open-source Crawl4AI (HTTP / CLI / Python)
+    c4 = scrape_with_crawl4ai(clean_url, home=home, timeout=timeout, opener=opener)
+    if c4.get("status") == "ok" and c4.get("text"):
+        return c4
+
+    # 2) Free local Playwright
+    pw = scrape_with_playwright(clean_url, timeout=timeout)
+    if pw.get("status") == "ok" and pw.get("text"):
+        return pw
+
+    # 3) Optional Firecrawl API (only if FIRECRAWL_API_KEY is configured)
+    if resolve_env_key(("FIRECRAWL_API_KEY",), home=home):
+        fc = scrape_with_firecrawl(clean_url, home=home, formats=formats, timeout=min(timeout, 30), opener=opener)
+        if fc.get("status") == "ok" and fc.get("text"):
+            return fc
+        return fc
+
+    return {
+        "status": "js_renderer_unavailable",
+        "provider": "none",
+        "url": clean_url,
+        "title": "",
+        "markdown": "",
+        "html": "",
+        "text": "",
+        "hint": (
+            "JS/SPA 페이지를 렌더링하려면 무료 오픈소스 Crawl4AI(pip install crawl4ai && crawl4ai-setup 또는 "
+            "로컬 Docker CRAWL4AI_BASE_URL=http://127.0.0.1:11235)를 설치하거나, "
+            "선택적으로 $HERMES_HOME/.env에 FIRECRAWL_API_KEY를 설정하세요."
+        ),
     }
 
 

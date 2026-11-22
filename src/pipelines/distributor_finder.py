@@ -239,20 +239,20 @@ def fetch_distributor_pages(
             raw, u, target_countries=target_countries, competitor_brand=competitor_brand
         )
         if render_js or (not parsed and web_extract.looks_like_js_shell(raw)):
-            fc = web_extract.scrape_with_firecrawl(
+            rendered = web_extract.render_js_page(
                 u, home=home, formats=("html", "markdown"), opener=opener
             )
-            if fc.get("status") == "ok":
-                fc_html = fc.get("html") or ""
-                if not fc_html and fc.get("markdown"):
-                    lines = [f"<p>{line}</p>" for line in fc["markdown"].splitlines() if line.strip()]
+            if rendered.get("status") == "ok":
+                fc_html = rendered.get("html") or ""
+                if not fc_html and rendered.get("markdown"):
+                    lines = [f"<p>{line}</p>" for line in rendered["markdown"].splitlines() if line.strip()]
                     fc_html = "<html><body>" + "\n".join(lines) + "</body></html>"
                 if fc_html:
                     parsed = extract_distributors_from_html(
                         fc_html, u, target_countries=target_countries, competitor_brand=competitor_brand
                     )
-            elif fc.get("status") == "missing_key" and not parsed:
-                errors.append(f"{u}: js_shell_detected ({fc.get('hint') or 'FIRECRAWL_API_KEY 필요'})")
+            elif rendered.get("status") in ("missing_key", "js_renderer_unavailable") and not parsed:
+                errors.append(f"{u}: js_shell_detected ({rendered.get('hint') or 'Crawl4AI 또는 FIRECRAWL_API_KEY 필요'})")
         for item in parsed:
             if item["company_key"] not in seen:
                 seen.add(item["company_key"])

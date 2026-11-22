@@ -374,11 +374,93 @@ def build_multitouch_sequence(
     return out
 
 
+PLAIN_KO_DOC_REPLACEMENTS: tuple[tuple[str, str], ...] = (
+    ("공개강점", "확인된 강점 / 공개 자료에서 확인한 강점"),
+    ("전장 판단", "영업 판단"),
+    ("진입 가능성 가설", "접근 가능성 / 시도해볼 조건"),
+    ("제품 진실", "실제 제공 가능한 서비스"),
+    ("룩얼라이크", "비슷한 고객"),
+    ("no-bid", "참여하지 않을 조건"),
+    ("오버레이", "부분 보완"),
+    ("벤더 권한", "공급업체 선정 권한"),
+    ("파일럿", "작은 시험 운영"),
+    ("인프라", "기반시설"),
+    ("클리닉", "진료소"),
+    ("커뮤니케이션 범위", "어디까지, 어떻게 안내하는지"),
+    ("실행망", "실제로 동원할 현지 협력망"),
+    ("입찰제안요청서", "입찰요청서"),
+    ("에어앰뷸런스", "의료 전용 항공기"),
+    ("갱신 이슈", "계약 갱신 문제"),
+    ("guarantee of payments", "병원비 지급보증"),
+    ("assistance centre", "지원센터"),
+    ("regional security centre", "지역 보안센터"),
+)
+
+
+def lint_document(text: str, *, path: str = "") -> dict[str, Any]:
+    """Audit Korean sales strategy docs / proposals for consulting jargon, untranslated buzzwords,
+    and broken Markdown table column counts.
+    """
+    lines = (text or "").splitlines()
+    jargon_hits: list[dict[str, Any]] = []
+    table_issues: list[dict[str, Any]] = []
+    in_code = False
+    table_cols: int | None = None
+
+    for lineno, raw in enumerate(lines, start=1):
+        stripped = raw.strip()
+        if stripped.startswith("```"):
+            in_code = not in_code
+            table_cols = None
+            continue
+        if in_code:
+            continue
+
+        low = raw.lower()
+        for term, replacement in PLAIN_KO_DOC_REPLACEMENTS:
+            if term.lower() in low:
+                jargon_hits.append({
+                    "line": lineno,
+                    "term": term,
+                    "suggestion": replacement,
+                    "excerpt": stripped[:80],
+                })
+
+        if stripped.startswith("|") and stripped.endswith("|") and stripped.count("|") >= 2:
+            cells = re.split(r"(?<!\\)\|", stripped[1:-1])
+            cols = len(cells)
+            if table_cols is None:
+                table_cols = cols
+            elif cols != table_cols:
+                table_issues.append({
+                    "line": lineno,
+                    "expected_cols": table_cols,
+                    "actual_cols": cols,
+                    "detail": f"{lineno}행 표 열 개수 불일치 (기대 {table_cols}열, 실제 {cols}열)",
+                })
+        else:
+            table_cols = None
+
+    score = max(0, 100 - len(jargon_hits) * 8 - len(table_issues) * 20)
+    passed = (len(jargon_hits) == 0 and len(table_issues) == 0)
+    return {
+        "mode": "doc",
+        "path": path,
+        "passed": passed,
+        "score": score,
+        "jargon_count": len(jargon_hits),
+        "table_error_count": len(table_issues),
+        "jargon_hits": jargon_hits,
+        "table_issues": table_issues,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="GTMOS식 아웃바운드 카피 스팸/가독성 린터 & 1~4차 멀티터치 시퀀스 생성기")
+    ap = argparse.ArgumentParser(description="GTMOS식 아웃바운드 카피 스팸/가독성/쉬운 한국어 문서 린터 & 1~4차 시퀀스 생성기")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    p_lint = sub.add_parser("lint", help="초안의 스팸어·상투어·분량·플레이스홀더 점검")
+    p_lint = sub.add_parser("lint", help="초안의 스팸어·상투어·분량 또는 영업 문서(--mode doc) 쉬운 한국어 문체 점검")
+    p_lint.add_argument("--mode", default="copy", choices=("copy", "doc"))
     p_lint.add_argument("--subject", default="")
     p_lint.add_argument("--text", default="")
     p_lint.add_argument("--file", help="검사할 텍스트/마크다운 파일")
@@ -401,10 +483,13 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     if args.cmd == "lint":
         text = Path(args.file).expanduser().read_text(encoding="utf-8-sig") if args.file else args.text
-        res = lint_copy(
-            text, subject=args.subject, language=args.language, channel=args.channel,
-            touch_number=args.touch, use_jev=args.use_jev, home=args.home,
-        )
+        if args.mode == "doc":
+            res = lint_document(text, path=args.file or "")
+        else:
+            res = lint_copy(
+                text, subject=args.subject, language=args.language, channel=args.channel,
+                touch_number=args.touch, use_jev=args.use_jev, home=args.home,
+            )
         print(json.dumps(res, ensure_ascii=False, indent=2))
         return 0 if res["passed"] else 1
 

@@ -501,9 +501,10 @@ def build_linkedin_plan(
     }
 
 
-def _safe_slug(text: str) -> str:
+def _safe_folder(text: str, fallback: str = "Unknown") -> str:
     cleaned = re.sub(r'[\\/:*?"<>|\r\n]+', " ", (text or "").strip())
-    return re.sub(r"\s+", "-", cleaned)[:60] or "contact"
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(". ")
+    return cleaned[:60] or fallback
 
 
 def export_linkedin_to_vault(
@@ -511,60 +512,115 @@ def export_linkedin_to_vault(
     icp: dict[str, Any],
     xray: dict[str, Any],
     vault_dir: str | Path,
+    *,
+    config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Write Obsidian LinkedIn Queue.md and per-contact warming/DM notes."""
+    """Write Obsidian LinkedIn Queue.md, per-lead notes under LinkedIn/{company}/{name}.md,
+    and synchronize CRM Board.md / CRM Dashboard.md / Knowledge docs.
+
+    Never overwrites existing contact history if a lead was already contacted.
+    """
+    import crm_board
+
     vroot = Path(vault_dir).expanduser().absolute()
     li_dir = vroot / "LinkedIn"
-    contacts_dir = li_dir / "Contacts"
-    contacts_dir.mkdir(parents=True, exist_ok=True)
+    li_dir.mkdir(parents=True, exist_ok=True)
+    crm_board.ensure_knowledge_docs(vroot, config or {})
 
     written: list[str] = []
+    preserved: list[str] = []
     rows_md: list[str] = []
+    product = str((config or {}).get("product") or icp.get("product") or "제안 서비스").strip()
+    buyer_note = str((config or {}).get("buyer_persona") or "").strip()
+
     for item in results:
         c = item["contact"]
         sc = item["score"]
         pl = item["plan"]
-        slug = _safe_slug(f"{c['company']}-{c['name']}")
-        note_path = contacts_dir / f"{slug}.md"
+        comp_dir = li_dir / _safe_folder(c["company"], "Unknown")
+        comp_dir.mkdir(parents=True, exist_ok=True)
+        lead_stem = _safe_folder(c["name"], "contact")
+        note_path = comp_dir / f"{lead_stem}.md"
+        rel_link = f"LinkedIn/{comp_dir.name}/{lead_stem}"
+
+        # Never clobber an already-contacted or stage-advanced lead
+        if note_path.is_file():
+            existing_meta, _ebody, _eerrs = crm_board.parse_frontmatter(
+                note_path.read_text(encoding="utf-8", errors="replace")
+            )
+            existing_cnt = int(existing_meta.get("연락횟수") or 0) if str(existing_meta.get("연락횟수") or "0").isdigit() else 0
+            existing_stage = str(existing_meta.get("단계") or "소싱됨").strip()
+            if existing_cnt > 0 or existing_stage != "소싱됨":
+                preserved.append(str(note_path))
+                rows_md.append(
+                    f"| [[{rel_link}\\|{c['name']}]] | {c['company']} | {c['title'][:30]} | "
+                    f"{sc['tier']} ({sc['score']}) | {existing_stage} (보존됨) |"
+                )
+                continue
+
         warm_lines = "\n".join(
             f"- [ ] Day +{w['day']} · **{w['action']}**: {w['note']}"
             for w in pl["warming_steps"]
         )
+        recent_post = str(c.get("recent_post") or "").strip()
+        if recent_post:
+            evidence_lines = f"- 공개 게시물: {recent_post}\n- 프로필 직함·소속: {c['company']} / {c['title'] or '미확인'}"
+            caution_line = "- 공개 게시물 내용만 근거로 사용하며, 확인되지 않은 내부 사정은 단정하지 않습니다."
+        else:
+            evidence_lines = f"- 프로필 직함·소속: {c['company']} / {c['title'] or '미확인'}\n- 최근 공개 게시물: 확인되지 않음"
+            caution_line = "- 공개 게시물이 확인되지 않아 상대의 성향이나 문체는 추정하지 않았습니다."
+        if buyer_note:
+            caution_line += f"\n- 의사결정 구조 확인: 본사 구매 결정자({buyer_note})와 함께 접근할지 확인하세요."
+
         md = (
-            f"---\n"
-            f'name: "{c["name"]}"\n'
-            f'company: "{c["company"]}"\n'
-            f'title: "{c["title"]}"\n'
-            f'tier: "{sc["tier"]}"\n'
+            "---\n"
+            f'name: {json.dumps(c["name"], ensure_ascii=False)}\n'
+            f'company: {json.dumps(c["company"], ensure_ascii=False)}\n'
+            f'title: {json.dumps(c["title"], ensure_ascii=False)}\n'
+            f'tier: {json.dumps(sc["tier"], ensure_ascii=False)}\n'
             f'score: {sc["score"]}\n'
+            f'단계: "소싱됨"\n'
+            f'개인화상태: "초안작성"\n'
+            f'메시지상태: "미발송"\n'
+            f'첫연락일: ""\n'
+            f'최근연락일: ""\n'
+            f'다음연락일: ""\n'
+            f"연락횟수: 0\n"
             f'warming: {"yes" if pl["warming_required"] else "skip"}\n'
-            f'status: "대기"\n'
+            f'linkedin_url: {json.dumps(c["linkedin_url"], ensure_ascii=False)}\n'
             f"automatic_send: false\n"
-            f"---\n\n"
+            "---\n\n"
             f"# {c['name']} · {c['company']}\n\n"
             f"- **직함**: {c['title'] or '미확인'}\n"
             f"- **업종/지역**: {c['industry'] or '미확인'} · {c['location'] or '미확인'}\n"
             f"- **LinkedIn**: {c['linkedin_url'] or '미확인'}\n"
             f"- **ICP 점수**: {sc['score']}점 ({sc['tier']}) — {', '.join(sc['reasons'])}\n\n"
-            f"## 1. 워밍업 체크리스트\n{warm_lines}\n\n"
-            f"## 2. 연결 요청 메모 ({pl['connect_chars']}/300자 · QA {pl['connect_qa']['score']}점)\n"
+            f"## 개인화 준비\n\n"
+            f"### 공개 근거\n{evidence_lines}\n\n"
+            f"### 제안할 서비스\n- {product}\n\n"
+            f"### 주의할 점\n{caution_line}\n\n"
+            f"## 워밍업 체크리스트\n{warm_lines}\n\n"
+            f"## 메시지 초안\n\n"
+            f"> 초안 작성은 실제 연락 이력이 아닙니다. 사용자 승인 전에는 발송하지 않습니다.\n\n"
+            f"### 연결 요청 ({pl['connect_chars']}/300자 · QA {pl['connect_qa']['score']}점)\n"
             f"```text\n{pl['connect_note']}\n```\n\n"
-            f"## 3. 1촌 수락 후 DM (QA {pl['dm_1_qa']['score']}점)\n"
+            f"### 첫 메시지 (QA {pl['dm_1_qa']['score']}점)\n"
             f"```text\n{pl['dm_touch_1']}\n```\n\n"
-            f"## 4. 팔로업 DM (Day +5)\n"
+            f"### 후속 메시지 (Day +5)\n"
             f"```text\n{pl['dm_touch_2']}\n```\n\n"
-            f"---\n[발송 전 내 말로 바꿀 1줄 메모]\n- 상대 최근 글·프로필에서 직접 확인한 사실 1줄을 넣어 발송하세요.\n"
+            f"## 연락 이력\n\n"
+            f"- 아직 발송하지 않았습니다. 실제 발송 후 `python3 outbound.py crm stage --vault <볼트> --note <파일> --to 컨택함 --mark-sent`로 기록하세요.\n"
         )
         note_path.write_text(md, encoding="utf-8")
         written.append(str(note_path))
         rows_md.append(
-            f"| [[LinkedIn/Contacts/{slug}\\|{c['name']}]] | {c['company']} | {c['title'][:30]} | "
+            f"| [[{rel_link}\\|{c['name']}]] | {c['company']} | {c['title'][:30]} | "
             f"{sc['tier']} ({sc['score']}) | {'워밍업 3~6일' if pl['warming_required'] else '바로 연결요청'} |"
         )
 
     queue_md = (
         "# LinkedIn Outbound Queue\n\n"
-        "> 자동 발송 없음 — 사람 검토 후 직접 발송하거나 승인된 외부 커넥터(Crispy 등)로 실행하세요.\n\n"
+        "> 자동 발송 없음 — 초안 상태(`미발송`)와 실제 연락 이력(`연락횟수`)은 엄격히 분리됩니다. [[CRM Board]]에서 단계를 확인하세요.\n\n"
         "## Boolean X-Ray 검색 쿼리\n"
         f"- **타깃 회사 X-Ray**: `{xray['company_xray']}`\n"
         f"- **담당자 X-Ray**: `{xray['people_xray']}`\n\n"
@@ -576,7 +632,14 @@ def export_linkedin_to_vault(
     )
     queue_path = li_dir / "Queue.md"
     queue_path.write_text(queue_md, encoding="utf-8")
-    return {"queue": str(queue_path), "notes_written": len(written)}
+    board = crm_board.sync_crm_board(vroot)
+    return {
+        "queue": str(queue_path),
+        "notes_written": len(written),
+        "notes_preserved": len(preserved),
+        "crm_board": board["board"],
+        "crm_dashboard": board["dashboard"],
+    }
 
 
 def run_linkedin_pipeline(
@@ -667,7 +730,7 @@ def run_linkedin_pipeline(
         kept.append({"contact": contact, "score": sc, "plan": plan})
 
     kept.sort(key=lambda item: item["score"]["score"], reverse=True)
-    vault_out = export_linkedin_to_vault(kept, icp, xray, vault) if vault else None
+    vault_out = export_linkedin_to_vault(kept, icp, xray, vault, config=config) if vault else None
 
     return {
         "schema_version": "hermes_linkedin_outbound/v1",
