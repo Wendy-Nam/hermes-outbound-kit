@@ -141,9 +141,9 @@ deploy는 키트를 복사할 뿐 Hermes나 계속 실행 서비스를 설치한
 
 ## 4단계 — 첫 성공 뒤의 선택 기능
 
-Webshare, Groq STT, Apify, Composio, OmniRoute는 사용자가 선택했을 때만 목적·외부 전송·비용·권한을
-설명합니다. OMH core는 권장 기본값이지만 끌 수 있습니다. Obsidian은 새 결과 폴더, 기존 폴더,
-사용 안 함 중 고릅니다.
+Firecrawl(JS 페이지 렌더링), Apify, Webshare, TypeSafe AI Jev, Groq STT, Composio는 사용자가 선택했을 때만
+목적·외부 전송·비용·권한을 설명합니다. 이 키트는 OMH(oh-my-hermes)나 OmniRoute에 의존하지 않고 순정 Hermes에서
+독립적으로 동작합니다. Obsidian은 새 결과 폴더, 기존 폴더, 사용 안 함 중 고릅니다.
 
 예약 실행은 수동 실행이 성공한 뒤에만 묻습니다. 켜면 주기, 시각, 시간대, 결과 경로, 중지 방법을
 확인합니다. 서버 서비스 적용도 별도 선택이며 재시작·재부팅 시험 전에는 계속 실행 완료가 아닙니다.
@@ -154,8 +154,8 @@ Webshare, Groq STT, Apify, Composio, OmniRoute는 사용자가 선택했을 때�
 설정 저장, 설치 계획, 첫 실행을 이어갑니다. 이미 설정이 있으면 완료 기록부터 재개합니다.
 
 ```sh
-python3 start.py --help
-python3 start.py
+python3 outbound.py start --help
+python3 outbound.py start
 ```
 
 Windows는 `py -3`을 사용합니다. 계정 연결 없이 첫 연습 결과부터 보려면 `python3 start.py --offline`을

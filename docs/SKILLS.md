@@ -47,7 +47,7 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 | `$HERMES_HOME/writing-style.json` | 개인 발신메일함 문체·구조 프로파일(익명화) | `profile.py style --mbox ... --apply`로 생성. 초안·프롬프트에 자동 반영 |
 | `$HERMES_HOME/do-not-contact.txt` | 연락 금지 회사(DNC) | `profile.py dnc --add "회사명"` 또는 직접 편집. 초안·파이프라인에서 자동 제외 |
 | `$HERMES_HOME/sender-profile.json` | 발신자 이름·회사·직함·문체·CTA | `profile.py init/customize/sync`로 자동 관리 |
-| `$HERMES_HOME/ats-targets.json` | 멀티 ATS 일괄 스캔 대상 회사 | `profile.py ats --add "greeting:slug:회사명"`으로 관리 |
+| `$HERMES_HOME/ats-targets.json` | 멀티 ATS 일괄 스캔 대상 회사 | `python3 outbound.py profile ats --add "greeting:slug:회사명"`으로 관리 |
 | `$HERMES_HOME/gtm/accounts.json` | `account-crm` 장부(볼트가 없을 때만) | 처음 `--ingest` 때 자동 생성 |
 
 이 파일들에는 연락처·영업 데이터가 들어가므로 공유하거나 커밋하지 않습니다.
@@ -72,5 +72,5 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 
 옮기지 않은 것: 개인 브랜딩 글쓰기 스킬, 개인 서버 전용 경로에 묶인 스킬, 일상·메신저·미디어 스킬,
 메모리·볼트·프로필 데이터, 구직자용 이력서·자기소개서·면접 스킬(필요하면 `hermes-job-hunt-for-korean`을
-별도로 설치합니다), 개인 커스텀 OMH 3.0 플러그인(키트는 공개 OMH 2.0.5를 설치합니다).
+별도로 설치합니다), OMH·OmniRoute 플러그인/라우터(이 키트는 OMH·OmniRoute에 독립적으로 동작합니다).
 `competitor-news-monitor`, `grounded-citations`는 Hermes에 기본 포함되어 있어 따로 넣지 않았습니다.
