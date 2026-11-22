@@ -29,11 +29,11 @@ description: 초보자에게 쉬운 질문을 조금씩 묻고 Hermes Desktop·�
 
 ## 먼저 확인할 것
 
-키트 루트의 `README.md`, `docs/PREPARE.md`, `docs/SKILL-FIRST.md`와 이 스킬의
+키트 루트의 `README.md`, `docs/PREPARE.md`, `docs/reference/SKILL-FIRST.md`와 이 스킬의
 `references/PREFLIGHT.md`, `references/SUPPORT-MATRIX.md`를 읽고 현재 실행 도구의 `--help`를
 확인합니다. 문서 예시보다 현재 설치된 도움말을 우선합니다.
 
-공식 Hermes 사용법은 `docs_support.py`로 확인합니다.
+공식 Hermes 사용법은 `python3 outbound.py docs`로 확인합니다.
 
 1. `version`으로 설치 버전과 검토된 공식 문서 버전이 맞는지 확인합니다.
 2. 맞을 때만 `sync`로 공식 저장소 README에서 연결된 문서를 고정 commit에 저장합니다.
@@ -112,8 +112,8 @@ description: 초보자에게 쉬운 질문을 조금씩 묻고 Hermes Desktop·�
 없거나 사용자가 원할 때만 `terminal`을 선택합니다. 앱 파일이 실제로 없으면 공식 문서와 현재
 `desktop --help`를 확인합니다.
 
-설치 경로는 `paths.py`가 정한 전용 폴더를 사용합니다. Windows와 Mac 경로를 임의로 같게 만들지
-말고, 설치·모델·채널·OMH 명령에 같은 경로를 사용하세요.
+설치 경로는 `src/core/paths.py`가 정한 전용 폴더를 사용합니다. Windows와 Mac 경로를 임의로 같게 만들지
+말고, 설치·모델·채널 명령에 같은 경로를 사용하세요.
 
 ### 서버를 고른 사람에게 설명할 말
 
@@ -122,7 +122,7 @@ description: 초보자에게 쉬운 질문을 조금씩 묻고 Hermes Desktop·�
 컴퓨터에만 두고 `.pub` 공개키만 서버 화면에 등록합니다.”
 
 그 다음에만 서버 주소/IP, 포트(보통 22), 사용자 이름, 기존/새 키, 개인키 **파일 경로**를
-묻습니다. 새 키는 `server_access.py keygen` 뒤 공개키 등록 화면을 안내합니다. 서버 제공자 화면이나
+묻습니다. 새 키는 `python3 outbound.py server keygen` 뒤 공개키 등록 화면을 안내합니다. 서버 제공자 화면이나
 관리자가 알려준 fingerprint를 독립적으로 확인한 후 `trust`, `probe`, `deploy` 순서로 진행합니다.
 deploy는 키트를 복사할 뿐 Hermes나 계속 실행 서비스를 설치한 것이 아닙니다.
 

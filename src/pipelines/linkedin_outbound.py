@@ -26,7 +26,6 @@ import os
 from pathlib import Path
 import re
 import sys
-import tempfile
 from typing import Any
 import urllib.error
 import urllib.parse

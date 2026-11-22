@@ -18,9 +18,7 @@ import src as _src_bootstrap  # noqa: E402,F401
 
 import argparse
 import json
-import os
 from pathlib import Path
-import re
 import sys
 from typing import Any
 import urllib.error

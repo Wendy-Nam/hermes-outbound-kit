@@ -1,6 +1,6 @@
 # Hermes Outbound Vault Template
 
-이 폴더는 `vault_flow.py init`이 만드는 Obsidian 볼트의 계약과 합성 입력을 제공합니다.
+이 폴더는 `python3 outbound.py vault init`이 만드는 Obsidian 볼트의 계약과 합성 입력을 제공합니다.
 Obsidian community plugin이나 Dataview에 의존하지 않습니다.
 
 흐름은 다음과 같습니다.

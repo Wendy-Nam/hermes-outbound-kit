@@ -27,25 +27,25 @@ metadata:
 키트 루트에서 실행한다.
 
 ```bash
-python3 sources.py funding \
+python3 outbound.py sources funding \
   --fixture samples/source-funding-wp.json \
   --per-page 20 \
   --as-of 2026-10-13T10:00:00Z
 
-python3 sources.py jobs-import samples/source-jobs.csv \
+python3 outbound.py sources jobs-import samples/source-jobs.csv \
   --as-of 2026-10-13T10:00:00Z
 
-python3 sources.py ats \
+python3 outbound.py sources ats \
   --provider greenhouse \
   --token example \
   --company "Example Co" \
   --fixture samples/source-ats-greenhouse.json \
   --as-of 2026-10-13T10:00:00Z
 
-python3 sources.py wanted "영업" --fixture samples/source-wanted.json \
+python3 outbound.py sources wanted "영업" --fixture samples/source-wanted.json \
   --as-of 2026-10-13T10:00:00Z
 
-python3 sources.py saramin "영업" --fixture samples/source-saramin.html \
+python3 outbound.py sources saramin "영업" --fixture samples/source-saramin.html \
   --as-of 2026-10-13T10:00:00Z
 ```
 
@@ -56,9 +56,9 @@ fixture 결과는 합성 데이터다. 실제 회사·투자·공고가 존재�
 `--config setup.json`을 주면 마법사에서 고른 workflow와 필터를 실제 결과에 적용한다.
 
 ```bash
-python3 sources.py jobs-import samples/source-jobs.csv --config setup.json
-python3 sources.py funding --fixture samples/source-funding-wp.json --config setup.json
-python3 sources.py ats --provider greenhouse --token example --company "Example Co" \
+python3 outbound.py sources jobs-import samples/source-jobs.csv --config setup.json
+python3 outbound.py sources funding --fixture samples/source-funding-wp.json --config setup.json
+python3 outbound.py sources ats --provider greenhouse --token example --company "Example Co" \
   --fixture samples/source-ats-greenhouse.json --config setup.json
 ```
 
@@ -87,8 +87,8 @@ CSV 또는 JSON에 다음 필드를 넣는다.
 | source_id | 아니오 | `posting_id`, `id`, `공고id` | 없으면 URL에서 생성 |
 
 ```bash
-python3 sources.py jobs-import /path/to/jobs.csv
-python3 sources.py jobs-import /path/to/jobs.json --format json
+python3 outbound.py sources jobs-import /path/to/jobs.csv
+python3 outbound.py sources jobs-import /path/to/jobs.json --format json
 ```
 
 원본 행이 잘못되어도 정상 행은 `records`에 남고 잘못된 행은 `errors`에 기록된다. 모든 행이 잘못되면
@@ -100,9 +100,9 @@ Greenhouse, Lever, Ashby의 공개 job-board slug만 받는다. `--token`은 API
 이미 나타나는 보드 식별자다. 한 번에 보드 하나, 최대 100건만 읽는다.
 
 ```bash
-python3 sources.py ats --provider greenhouse --token acme --company "Acme"
-python3 sources.py ats --provider lever --token acme --company "Acme" --limit 30
-python3 sources.py ats --provider ashby --token acme --company "Acme"
+python3 outbound.py sources ats --provider greenhouse --token acme --company "Acme"
+python3 outbound.py sources ats --provider lever --token acme --company "Acme" --limit 30
+python3 outbound.py sources ats --provider ashby --token acme --company "Acme"
 ```
 
 접근 거부나 rate limit이면 즉시 중단하고 해당 상태를 보고한다. 다른 IP·프록시로 재시도하지 않는다.
@@ -110,7 +110,7 @@ python3 sources.py ats --provider ashby --token acme --company "Acme"
 ## 제한된 투자 뉴스 수집
 
 ```bash
-python3 sources.py funding --pages 1 --per-page 10
+python3 outbound.py sources funding --pages 1 --per-page 10
 ```
 
 - 공개 WordPress JSON 한 소스만 사용한다.
