@@ -139,24 +139,78 @@ def _owner(questions: Questions, channel: str) -> str:
         questions.output("봇 토큰이 아니라 본인의 숫자 사용자 ID를 입력해 주세요.")
 
 
+def load_presets_module():
+    presets_path = KIT_ROOT / "profile_presets.py"
+    if not presets_path.is_file():
+        return None
+    spec = importlib.util.spec_from_file_location("hermes_outbound_presets", presets_path)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def collect_config(input_fn: InputFn = input, output_fn: OutputFn = print) -> dict:
     """Ask adaptive non-secret questions and return a root-validator-ready config."""
     q = Questions(input_fn, output_fn)
     q.output("Hermes Outbound를 함께 준비할게요. 키·토큰·비밀번호는 여기서 묻지 않습니다.")
-    q.output("먼저 오늘 하고 싶은 일 하나를 고릅니다.")
 
+    presets_mod = load_presets_module()
+    preset_data: dict = {}
+    sales_preset = "custom"
+    if presets_mod is not None:
+        available = presets_mod.list_presets()
+        preset_ids = tuple(p["id"] for p in available) + ("custom",)
+        q.output("먼저 내 영업 직군·업종과 가장 가까운 프리셋을 고르면 키워드·채점·초안 기본값이 자동으로 채워집니다:")
+        for p in available:
+            q.output(f"  - {p['id']}: {p['name']} ({p['tagline']})")
+        sales_preset = q.choice("영업 직군 프리셋 (custom=직접 입력)", preset_ids, default="b2b-saas")
+        if sales_preset != "custom":
+            preset_data = presets_mod.get_preset(sales_preset)
+
+    outreach_defaults = preset_data.get("outreach") or {}
+    default_scenario = preset_data.get("default_scenario", "job_signal")
     scenario = q.choice(
         "시나리오 (job_signal=채용 신호, funding_signal=투자 신호, "
         "tender_watch=입찰 확인, overseas_partner=해외 파트너)",
         ("job_signal", "funding_signal", "tender_watch", "overseas_partner"),
-        default="job_signal")
+        default=default_scenario)
     workflow_map = {"job_signal": ["jobs"], "funding_signal": ["funding"],
                     "tender_watch": ["tenders"], "overseas_partner": ["overseas"]}
-    workflows = workflow_map[scenario]
-    campaign_name = q.text("이 작업의 이름", default="첫 아웃바운드 캠페인", required=True)
-    product = q.text("내가 제안하는 제품·서비스", required=True)
-    customer = q.text("찾고 싶은 회사", required=True)
-    draft_language = q.choice("초안 언어", ("ko", "en"), default="ko")
+    workflows = list(preset_data.get("default_workflows") or workflow_map[scenario])
+    if workflow_map[scenario][0] not in workflows:
+        workflows.insert(0, workflow_map[scenario][0])
+
+    campaign_name = q.text(
+        "이 작업의 이름",
+        default=f"{preset_data['name']} 캠페인" if preset_data.get("name") else "첫 아웃바운드 캠페인",
+        required=True,
+    )
+    product = q.text("내가 제안하는 제품·서비스", default=preset_data.get("product_example", ""), required=True)
+    customer = q.text("찾고 싶은 회사(ICP)", default=preset_data.get("customer_example", ""), required=True)
+    value_proposition = q.text("핵심 가치제안(1문장, 선택)", default=preset_data.get("value_proposition", ""))
+    proof_points = q.text("검증된 제안 포인트/레퍼런스 요약(선택)", default=preset_data.get("proof_points", ""))
+
+    draft_language = q.choice("초안 언어", ("ko", "en"), default=outreach_defaults.get("language", "ko"))
+    outreach_tone = q.choice(
+        "아웃리치 문체 (formal=격식, consultative=컨설팅형, concise=간결, friendly=친근)",
+        ("formal", "consultative", "concise", "friendly"),
+        default=outreach_defaults.get("tone", "consultative"),
+    )
+    outreach_channel = q.choice(
+        "주요 아웃리치 채널 (email=이메일, linkedin=링크드인 DM, call=콜드콜 오프너)",
+        ("email", "linkedin", "call"),
+        default=outreach_defaults.get("channel", "email"),
+    )
+    sender_name = q.text("발신자 이름 (초안 서명용, 선택)")
+    sender_company = q.text("발신자 소속 회사 (선택)")
+    sender_role = q.text("발신자 직함 (예: Enterprise AE, 선택)")
+    sender_contact = q.text("발신자 이메일/연락처 (선택)")
+    sender_cta = q.text("선호 CTA 문구 (선택)", default=outreach_defaults.get("cta", ""))
+    raw_dnc = q.text("연락 금지(DNC) 회사 목록 — 쉼표 구분 (기존고객·경쟁사, 선택)")
+    do_not_contact = [x.strip() for x in raw_dnc.split(",") if x.strip()]
+
     draft_mode = q.choice(
         "첫 초안 방식 (template=연습용, hermes=연결한 AI, provided=내 문구)",
         ("template", "hermes", "provided"), default="template")
@@ -166,25 +220,51 @@ def collect_config(input_fn: InputFn = input, output_fn: OutputFn = print) -> di
         "데이터 시작 방법 (sample=연습, file=내 파일, live=지원 공개 소스)",
         ("sample", "file", "live"), default="sample")
     source_path = q.text("사용할 CSV/JSON 파일 경로", required=True) if source_mode == "file" else ""
-    ats_provider = ats_board = ats_company = jobs_provider = jobs_query = ""
+    ats_provider = ats_board = ats_company = jobs_provider = ""
+    default_boards = tuple(preset_data.get("default_jobs_providers") or ("wanted", "saramin"))
+    jobs_providers: list[str] = list(default_boards)
+    jobs_query = preset_data.get("jobs_query", "")
+    jobs_pages = 2
+    jobs_fetch_details = True
+    jobs_partial_ok = True
+    funding_enrich_hiring = True
+    tender_type = "servc"
+    g2b_keywords = ""
+    overseas_rss_urls = ""
+
     if source_mode == "live" and scenario == "job_signal":
-        q.output("실시간 채용은 공개된 채용공고만 소량 조회합니다. 로그인이나 차단 우회는 하지 않습니다.")
-        jobs_provider = q.choice(
-            "채용 소스 (ats=회사 공개 채용판, wanted=원티드, saramin=사람인, both=원티드+사람인)",
-            ("ats", "wanted", "saramin", "both"), default="ats")
-        if jobs_provider == "ats":
-            q.output("회사 공개 채용 페이지가 Greenhouse, Lever, Ashby 중 어디인지 확인해 주세요.")
-            ats_provider = q.choice("공개 채용 게시판 종류", ("greenhouse", "lever", "ashby"),
+        q.output("실시간 채용은 공개된 채용공고만 정중하게 조회합니다. 로그인이나 차단 우회는 하지 않습니다.")
+        jobs_providers = q.multiple(
+            "채용 소스 복수 선택 (wanted=원티드, saramin=사람인, jobkorea=잡코리아, jumpit=점핏, ats_batch=멀티ATS, ats=단일ATS, greeting=그리팅)",
+            ("wanted", "saramin", "jobkorea", "jumpit", "ats_batch", "ats", "greeting"),
+            default=default_boards,
+        ) or ["wanted", "saramin"]
+        jobs_provider = "multi" if len(jobs_providers) > 1 else jobs_providers[0]
+        if "ats" in jobs_providers:
+            q.output("단일 회사 공개 채용 페이지(Greenhouse/Lever/Ashby/Greeting) 정보를 입력해 주세요.")
+            ats_provider = q.choice("공개 채용 게시판 종류", ("greenhouse", "lever", "ashby", "greeting"),
                                     default="greenhouse")
             ats_board = q.text("공개 채용 게시판 식별자", required=True)
             ats_company = q.text("회사 이름", required=True)
-        else:
-            jobs_query = q.text("채용 사이트에서 찾을 직무·기술 검색어", required=True)
-    job_keywords = q.text("채용 직무·기술 키워드") if "jobs" in workflows else ""
-    funding_keywords = q.text("투자 소식 키워드") if "funding" in workflows else ""
-    region = q.text("지역")
-    exclude_keywords = q.text("제외 키워드")
-    keywords = q.text("공통 검색 키워드")
+        if any(b in ("wanted", "saramin", "jobkorea", "jumpit") for b in jobs_providers):
+            jobs_query = q.text("채용 사이트 검색어 (쉼표로 복수 입력 가능)", default=jobs_query, required=True)
+        jobs_pages = q.integer("보드당 수집 페이지 수 (1~5)", default=2, minimum=1, maximum=5)
+        jobs_fetch_details = q.yes_no("원티드·점핏 공고 상세 JD/기술스택도 함께 추출할까요?", default=True)
+        jobs_partial_ok = q.yes_no("일부 사이트가 차단/오류여도 정상 수집된 보드 결과를 유지할까요?", default=True)
+    elif source_mode == "live" and scenario == "funding_signal":
+        funding_enrich_hiring = q.yes_no("투자 유치 기업에 원티드 채용 현황을 자동 보강할까요?", default=True)
+    elif source_mode == "live" and scenario == "tender_watch":
+        tender_type = q.choice("나라장터 공고 구분 (all/servc=용역/thng=물품/cnstwk=공사/frgcpt=외자)",
+                               ("all", "servc", "thng", "cnstwk", "frgcpt"), default="servc")
+        g2b_keywords = q.text("나라장터 공고명 검색 키워드", default=preset_data.get("keywords", "").split(",")[0].strip())
+    elif source_mode == "live" and scenario == "overseas_partner":
+        overseas_rss_urls = q.text("참고할 공개 RSS/Atom URL (쉼표 구분, 비우면 글로벌 ATS 확장 신호 조회)")
+
+    job_keywords = q.text("채용 직무·기술 키워드", default=preset_data.get("job_keywords", "")) if "jobs" in workflows else ""
+    funding_keywords = q.text("투자 소식 키워드", default=preset_data.get("funding_keywords", "")) if "funding" in workflows else ""
+    region = q.text("지역", default=preset_data.get("region", ""))
+    exclude_keywords = q.text("제외 키워드", default=preset_data.get("exclude_keywords", "인턴, 아르바이트"))
+    keywords = q.text("공통 검색 키워드", default=preset_data.get("keywords", ""))
 
     q.output("이제 Hermes를 내 컴퓨터에서 쓸지, 이미 준비된 서버에서 쓸지 정합니다.")
     install_location = q.choice("사용 장소 (local=내 컴퓨터, remote=준비된 서버)",
@@ -331,18 +411,37 @@ def collect_config(input_fn: InputFn = input, output_fn: OutputFn = print) -> di
     return {
         "version": 1,
         "target": target,
+        "sales_preset": sales_preset,
         "scenario": scenario,
         "campaign_name": campaign_name,
         "draft_language": draft_language,
         "draft_mode": draft_mode,
         "drafts_path": drafts_path,
+        "outreach_tone": outreach_tone,
+        "outreach_channel": outreach_channel,
+        "sender_name": sender_name,
+        "sender_company": sender_company,
+        "sender_role": sender_role,
+        "sender_contact": sender_contact,
+        "sender_cta": sender_cta,
+        "value_proposition": value_proposition,
+        "proof_points": proof_points,
+        "do_not_contact": do_not_contact,
         "source_mode": source_mode,
         "source_path": source_path,
         "ats_provider": ats_provider,
         "ats_board": ats_board,
         "ats_company": ats_company,
         "jobs_provider": jobs_provider,
+        "jobs_providers": jobs_providers,
         "jobs_query": jobs_query,
+        "jobs_pages": jobs_pages,
+        "jobs_fetch_details": jobs_fetch_details,
+        "jobs_partial_ok": jobs_partial_ok,
+        "funding_enrich_hiring": funding_enrich_hiring,
+        "tender_type": tender_type,
+        "g2b_keywords": g2b_keywords,
+        "overseas_rss_urls": overseas_rss_urls,
         "desktop_mode": desktop_mode,
         "install_location": install_location,
         "os_hint": os_hint,

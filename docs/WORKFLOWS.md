@@ -7,13 +7,14 @@
 
 | 새 ID | setup.json 호환값 | record type | live 범위 |
 |---|---|---|---|
-| `job_signal` | `jobs` | `job_posting` | 공개 Greenhouse/Lever/Ashby board slug |
-| `funding_signal` | `funding` | `funding_signal` | 제한된 공개 Platum WordPress 후보 수집 |
-| `tender_watch` | `tenders` | `procurement` | 현재는 공식 export의 file 모드 |
-| `overseas_partner` | `overseas` | `overseas_partner` | 현재는 공식 export의 file 모드 |
+| `job_signal` | `jobs` | `job_posting` | 원티드(상세 JD)·사람인·잡코리아·점핏·Greenhouse/Lever/Ashby/Greeting 멀티 보드 + 중복 병합 |
+| `funding_signal` | `funding` | `funding_signal` | Platum·VentureSquare 공개 WordPress API + 원티드 채용 현황 자동 보강 |
+| `tender_watch` | `tenders` | `procurement` | 나라장터(G2B) 공공데이터 OpenAPI(`DATA_GO_KR_API_KEY`) 또는 공식 export `file` 모드 |
+| `overseas_partner` | `overseas` | `overseas_partner` | 지정 공개 RSS/Atom 피드 또는 글로벌 ATS Korea/APAC 공고, 또는 `file` 모드 |
 
-지원하지 않는 live 모드는 빈 성공으로 위장하지 않고 실패 상태와 file export 안내를
-반환한다. 접근 차단, rate limit, 응답 형식 변경도 `empty`와 구분된다.
+지원하지 않거나 키가 없는 live 모드는 빈 성공으로 위장하지 않고 명확한 오류/안내를 반환합니다.
+접근 차단(401/403/429), 응답 형식 변경도 `empty`와 구분되며 로그인/CAPTCHA 우회는 하지 않습니다.
+선택 옵션으로 `TYPESAFE_API_KEY`(또는 `JEV_API_KEY`)와 `"jev_enabled": true`를 켜면 대량 계정 사전 필터링·적합/긴급 채점·초안 과장/환각 검수를 고속 처리하고, 미설정/실패 시 로컬 규칙 채점(`account_score.py`)으로 자동 폴백합니다.
 
 ## 가장 단순한 실행
 

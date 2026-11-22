@@ -8,20 +8,21 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 
 | 단계 | 스킬 | 스크립트 | 비고 |
 |---|---|---|---|
+| 프로필 커스텀 | `profile-customizer` | `profile.py`, `profile_bootstrap.py`, `style_analyzer.py` | 직군 프리셋(8종), 브로셔/홈페이지 분석, 개인 발신메일함 톤·구조 분석, DNC/ATS 관리 |
 | 타깃 정의 | `gtm-icp-brief` | — | ICP 필수·가점·제외 조건 |
 | 계정 발굴 | `lead-prospecting` | `lead_scorer.py` | 도입사례 → 경쟁사·생태계 확장 → BANT → 제안 개요 |
-| 계정 발굴 | `funding-signal-search` | `funding_search.py` | Platum 투자 기사(공개 WordPress API) |
-| 채용 신호 | `wanted-search`, `kr-search`, `ats-search` | 각 1개 | 원티드·사람인·잡코리아·Greenhouse/Lever/Ashby |
+| 계정 발굴 | `funding-signal-search` | `funding_search.py` | Platum·VentureSquare 투자 기사(공개 WordPress API) |
+| 채용 신호 | `wanted-search`, `kr-search`, `ats-search` | 각 1개 | 원티드(상세 JD)·사람인·잡코리아·점핏·Greenhouse/Lever/Ashby/Greeting |
 | 채용 신호 | `hiring-signal-enrich` | `hiring_enrich.py` | 계정 후보별 원티드 공고 수·직무 |
-| 채용 신호 | `sales-job-sourcing` | — | 키트 `workflow.py` 수집 흐름 안내 |
+| 채용 신호 | `sales-job-sourcing` | — | 키트 `workflow.py` 멀티 보드 수집 흐름 안내 |
 | 뉴스·공개 신호 | `naver-news-search` | — | 제3자 k-skill 공개 프록시 경유(아래 참고) |
 | 뉴스·공개 신호 | `news-monitoring-briefing`, `buying-signals`, `korean-public-research`, `overseas-partner-research` | — | |
 | 리서치 | `prospect-research`, `web-reader` | — | 사람·회사 공개 정보, 본문 추출(Jina Reader) |
-| 우선순위 | `outbound-scoring` | `account_score.py`, `signals_to_accounts.py` | 적합도×긴급도(투자·채용·임원 발언·행사·경쟁사), 커버리지 미달이면 "리서치 필요" |
-| 초안 | `evidence-to-outreach`, `signal-outreach-draft`, `linkedin-cold-messaging` | `signal_outreach.py` | 초안만, 사람 검토 후 직접 발송 |
+| 우선순위 | `outbound-scoring` | `account_score.py`, `signals_to_accounts.py` | 적합도×긴급도(투자·채용·임원 발언·행사·경쟁사), 선택 TypeSafe AI Jev 고속 보정 |
+| 초안 | `evidence-to-outreach`, `signal-outreach-draft`, `linkedin-cold-messaging` | `signal_outreach.py` | 담백한 3~4줄 실무 초안 + 1줄 수정 메모, 사람 검토 후 직접 발송 |
 | 문체 | `korean-humanizer` | — | 번역체·AI 상투어 교정 |
 | 검수 | `gtm-list-qa`, `gtm-copy-qa` | — | |
-| 추적 | `account-crm` | `account_crm.py` | 발굴→접촉→응답→미팅→제안→계약, 사람이 바꾼 상태·메모는 덮지 않음 |
+| 추적 | `account-crm` | `account_crm.py` | 발굴→접촉→응답→미팅→제안→계약, `workflow.py` 실행 시 자동 연동(사람 메모 보존) |
 
 ## Obsidian 볼트에 남는 것
 
@@ -31,8 +32,8 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 | 위치 | 만드는 것 | 사람이 바꾸는 것 |
 |---|---|---|
 | `Dashboard.md`, `Accounts/ Evidence/ Scores/ Drafts/ Review/ Runs/` | 키트 기본 흐름(`workflow.py`, 예약 실행) | Review 노트의 승인 |
-| `GTM/Accounts/<회사>.md`, `GTM/Pipeline.md` | `account-crm` | `status` 속성, `## 사람 메모` |
-| `GTM/Drafts/<회사>.md` | `signal-outreach-draft` | `review` 속성, `## 사람 메모` |
+| `GTM/Accounts/<회사>.md`, `GTM/Pipeline.md` | `workflow.py` 자동 동기화 + `account-crm` | `status` 속성, `## 사람 메모` |
+| `GTM/Drafts/<회사>.md` | `workflow.py` 자동 동기화 + `signal-outreach-draft` | `review` 속성, `## 사람 메모` |
 
 자동 갱신은 표식(`<!-- hermes-outbound:... -->`)이 있는 노트의 기계 영역만 바꿉니다. 사람이 만든 같은 이름 노트는 건너뜁니다.
 
@@ -42,9 +43,11 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 
 | 파일 | 용도 | 시작 방법 |
 |---|---|---|
-| `$HERMES_HOME/sales-profile.json` | `outbound-scoring` 채점 기준 | 설치 때 답변(키워드·고객·채용 키워드)으로 자동 생성. 업종·기술스택·직무 밴드를 다듬는다. 재설치해도 덮지 않음 |
-| `$HERMES_HOME/do-not-contact.txt` | `signal-outreach-draft` 연락 금지 회사 | 한 줄에 회사 하나. 이미 접촉·진행 중인 계정(CRM 상태가 발굴이 아님)도 자동 제외 |
-| `$HERMES_HOME/sender-profile.json` | `signal-outreach-draft` 발신자 정보 | `skills/signal-outreach-draft/profile.example.json` 복사 후 작성 |
+| `$HERMES_HOME/sales-profile.json` | `outbound-scoring` 채점 기준 | `profile.py init/sync` 또는 설치 답변으로 자동 생성. 재설치해도 덮지 않음 |
+| `$HERMES_HOME/writing-style.json` | 개인 발신메일함 문체·구조 프로파일(익명화) | `profile.py style --mbox ... --apply`로 생성. 초안·프롬프트에 자동 반영 |
+| `$HERMES_HOME/do-not-contact.txt` | 연락 금지 회사(DNC) | `profile.py dnc --add "회사명"` 또는 직접 편집. 초안·파이프라인에서 자동 제외 |
+| `$HERMES_HOME/sender-profile.json` | 발신자 이름·회사·직함·문체·CTA | `profile.py init/customize/sync`로 자동 관리 |
+| `$HERMES_HOME/ats-targets.json` | 멀티 ATS 일괄 스캔 대상 회사 | `profile.py ats --add "greeting:slug:회사명"`으로 관리 |
 | `$HERMES_HOME/gtm/accounts.json` | `account-crm` 장부(볼트가 없을 때만) | 처음 `--ingest` 때 자동 생성 |
 
 이 파일들에는 연락처·영업 데이터가 들어가므로 공유하거나 커밋하지 않습니다.

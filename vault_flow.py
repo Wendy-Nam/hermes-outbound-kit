@@ -209,27 +209,19 @@ def _load_envelope(path: str | Path | None) -> tuple[dict, str]:
     return normalized, str(source)
 
 
-# Signal-specific hypotheses keep the template honest: they are phrased as questions, never as facts.
+# Plain, honest 1-line context openers — no fake flattery, no lecturing, easy to read on mobile.
 _TEMPLATE_HOOKS = {
     "ko": {
-        "job_posting": ("공개된 채용 공고 「{title}」 내용을 보았습니다.",
-                        "새로 합류하는 분이 빠르게 자리 잡도록 업무 기반을 정비하는 시점이 아닐까 싶었습니다."),
-        "funding_signal": ("「{title}」 소식을 보았습니다. 축하드립니다.",
-                           "투자 이후 조직과 사업을 키우는 과정에서 새로 검토하시는 일이 있을 것 같았습니다."),
-        "procurement": ("공고 「{title}」 내용을 보았습니다.",
-                        "공고에 담긴 과제를 준비하시는 데 참고가 될 수 있을지 여쭙고 싶었습니다."),
-        "overseas_partner": ("「{title}」 관련 정보를 보았습니다.",
-                             "한국 쪽 협력처를 찾고 계신다면 이야기를 나눠볼 만하다고 생각했습니다."),
+        "job_posting": "「{title}」 공고 보고 짧게 연락드립니다.",
+        "funding_signal": "「{title}」 기사 보고 짧게 연락드립니다.",
+        "procurement": "「{title}」 공고 보고 문의드립니다.",
+        "overseas_partner": "「{title}」 관련해서 짧게 여쭤보고 싶습니다.",
     },
     "en": {
-        "job_posting": ("I saw your opening for {title}.",
-                        "Growing the team is often when the groundwork around that role gets a second look."),
-        "funding_signal": ("Congratulations on the news: {title}.",
-                           "After a raise, teams often revisit how they scale the work ahead."),
-        "procurement": ("I saw the notice for {title}.",
-                        "I wondered whether a short conversation could help as you prepare for it."),
-        "overseas_partner": ("I came across {title}.",
-                             "If you are looking for partners in Korea, it may be worth a short conversation."),
+        "job_posting": "Saw your {title} posting and wanted to reach out briefly.",
+        "funding_signal": "Saw the news on {title} — quick note.",
+        "procurement": "Saw the {title} notice and wanted to check one thing.",
+        "overseas_partner": "Came across {title} — quick question on Korea.",
     },
 }
 
@@ -241,28 +233,145 @@ def _josa(word: str, with_final: str, without_final: str) -> str:
     return f"{word}{with_final}({without_final})"
 
 
-def _template_draft(record: dict, product: str, customer: str, language: str) -> str:
+def _apply_style_placeholders(pattern: str, company: str) -> str:
+    out = pattern.replace("{회사}", company or "귀사").replace("{담당자}", "담당자")
+    out = out.replace("{name}", f"{company} team" if company else "there")
+    return out.strip()
+
+
+def _template_draft(record: dict, product: str, customer: str, language: str,
+                    profile: dict | None = None) -> str:
+    profile = profile or {}
     lang = "en" if language.casefold().startswith("en") else "ko"
     hooks = _TEMPLATE_HOOKS[lang]
-    opener, hypothesis = hooks.get(record["record_type"], hooks["procurement"])
+    opener = hooks.get(record["record_type"], hooks["procurement"])
+    preset_hooks = profile.get("preset_hooks") if isinstance(profile.get("preset_hooks"), dict) else {}
+    custom_hook = preset_hooks.get(record["record_type"]) if lang == "ko" else None
+    wstyle = profile.get("writing_style") if isinstance(profile.get("writing_style"), dict) else {}
+    wpat = wstyle.get("patterns") if isinstance(wstyle.get("patterns"), dict) else {}
+    wstruct = wstyle.get("structure") if isinstance(wstyle.get("structure"), dict) else {}
+    use_bullets = float(wstruct.get("bullet_usage_rate") or 0.0) >= 0.35
+    use_bracket_subj = any("말머리" in str(p) for p in (wstruct.get("subject_patterns") or []))
+
     title = record["title"]
     company = record.get("company") or record.get("company_candidate") or ""
+    tone = (profile.get("outreach_tone") or wstyle.get("detected_tone") or "consultative").strip()
+    channel = (profile.get("outreach_channel") or "email").strip()
+    value_prop = (profile.get("value_proposition") or "").strip()
+    proof = (profile.get("proof_points") or "").strip()
+    sender_name = (profile.get("sender_name") or "").strip()
+    sender_company = (profile.get("sender_company") or "").strip()
+    sender_role = (profile.get("sender_role") or "").strip()
+    sender_contact = (profile.get("sender_contact") or "").strip()
+    sender_cta = (profile.get("sender_cta") or wpat.get("preferred_cta") or "").strip()
+    stack = record.get("stack") or []
+
     if lang == "en":
-        greeting = f"Hello {company} team," if company else "Hello,"
-        return (f"Subject: Quick question about {title}\n\n{greeting}\n\n"
-                f"{opener.format(title=title)} {hypothesis}\n\n"
-                f"We offer {product}, built for teams like {customer}. If that sounds relevant, "
-                "would a 15-minute call next week be useful? If not, a quick no is perfectly fine.\n\n"
-                "Thank you.")
-    greeting = f"안녕하세요, {company} 담당자님." if company else "안녕하세요."
-    subject = f"{company} {title} 관련 문의" if company else f"{title} 관련 문의"
+        greeting = (
+            _apply_style_placeholders(wpat["preferred_greeting"], company)
+            if wpat.get("preferred_greeting") and lang == wstyle.get("language")
+            else (f"Hi {company} team," if company else "Hi,")
+        )
+        cta = sender_cta or "Is this on your list right now, or not a priority?"
+        val = value_prop or f"We work on {product}."
+        sig_parts = [p for p in (sender_name, sender_role, sender_company, sender_contact) if p]
+        sign = "\n" + " · ".join(sig_parts) if sig_parts else ""
+        if channel == "linkedin":
+            return f"[LinkedIn DM]\n{greeting}\n{opener.format(title=title)}\n{val}\n{cta}{sign}"
+        if channel == "call":
+            return (f"[Call Opener]\n- {sender_name or 'Hi'}, {sender_company or ''}\n"
+                    f"- {opener.format(title=title)}\n- {val}\n- {cta}")
+        closing = wpat.get("preferred_closing") if (wpat.get("preferred_closing") and lang == wstyle.get("language")) else "Thanks,"
+        return (f"Subject: {title}\n\n{greeting}\n\n"
+                f"{opener.format(title=title)}\n\n"
+                f"{val}\n\n{cta}\n\n{closing}{sign}")
+
+    # Korean — plain, short, 1 idea per line, zero cheesy sales pitch
+    reason_line = (
+        custom_hook.format(title=title)
+        if isinstance(custom_hook, str) and "{title}" in custom_hook
+        else opener.format(title=title)
+    )
+    default_cta = "지금 우선순위에 있는 주제인지, 아니면 해당 없으신지만 짧게 알려주셔도 됩니다."
+    cta = sender_cta or default_cta
+
+    intro_self = ""
+    if sender_company and sender_name:
+        role_bit = f" {sender_role}" if sender_role else ""
+        intro_self = f"{sender_company} {sender_name}{role_bit}입니다."
+    elif sender_name:
+        intro_self = f"{sender_name}입니다."
+
+    sig_parts = [p for p in (sender_name, sender_role, sender_company, sender_contact) if p]
+    sign = ("\n" + " · ".join(sig_parts)) if sig_parts else ""
+    plain_what = value_prop or f"{product} 일을 하고 있습니다"
+    if not plain_what.endswith((".", "다", "요", "?")):
+        plain_what += "."
+
+    if channel == "linkedin":
+        who = f"{company} 담당자님" if company else "담당자님"
+        lines = [f"[LinkedIn DM]", f"안녕하세요 {who}, {intro_self}".strip(), reason_line, plain_what, cta]
+        return "\n".join(l for l in lines if l) + sign
+
+    if channel == "call":
+        return "\n".join([
+            "[통화 메모 · 20초]",
+            f"- 인사: 안녕하세요, {intro_self or '잠깐 여쭤볼 게 있어 전화드렸습니다.'}",
+            f"- 이유: {reason_line}",
+            f"- 요점: {plain_what}",
+            f"- 확인: {cta}",
+        ])
+
+    if wpat.get("preferred_greeting") and wstyle.get("language", "ko") == "ko":
+        greeting = _apply_style_placeholders(wpat["preferred_greeting"], company)
+    elif tone == "formal":
+        greeting = f"안녕하십니까, {company} 담당자님." if company else "안녕하십니까."
+    else:
+        greeting = f"안녕하세요, {company} 담당자님." if company else "안녕하세요."
+    if intro_self:
+        greeting = f"{greeting} {intro_self}"
+
+    closing = (
+        wpat["preferred_closing"]
+        if wpat.get("preferred_closing") and wstyle.get("language", "ko") == "ko"
+        else "감사합니다."
+    )
+
+    short_title = title[:26] + ("…" if len(title) > 26 else "")
+    if use_bracket_subj and company:
+        subject = f"[{company}] {short_title}"
+    elif company:
+        subject = f"{company} {short_title} 관련"
+    else:
+        subject = f"{short_title} 관련"
+
+    body_lines = [reason_line]
+    if use_bullets:
+        body_lines.append("")
+        body_lines.append(f"- 하는 일: {product}")
+        body_lines.append(f"- 핵심: {plain_what}")
+        if proof:
+            body_lines.append(f"- 참고: {proof}")
+    else:
+        body_lines.append("")
+        body_lines.append(plain_what)
+        if proof:
+            body_lines.append(proof + ("" if proof.endswith((".", "다", "요", "?")) else "."))
+
+    context_hints = []
+    if stack:
+        context_hints.append(f"스택/키워드: {', '.join(stack[:5])}")
+    if record.get("location"):
+        context_hints.append(f"위치: {record['location']}")
+    memo_block = (
+        "\n\n---\n[발송 전 내 말로 바꿀 1줄 메모]\n"
+        + "\n".join(f"- {h}" for h in context_hints)
+        + "\n- 위 근거 링크를 30초 보고, 상대 회사에만 해당하는 진짜 한 문장만 넣으세요."
+    ) if context_hints else ""
+
     return (f"제목: {subject}\n\n{greeting}\n\n"
-            f"{opener.format(title=title)} {hypothesis}\n\n"
-            f"저희는 {_josa(product, '을', '를')} 제공하고 있으며, "
-            f"{_josa(customer, '과', '와')} 비슷한 상황의 팀을 돕고 있습니다. "
-            "혹시 관련이 있다면 다음 주 중 15분 정도 짧게 이야기 나눠볼 수 있을까요? "
-            "지금은 해당되지 않는다면 편하게 말씀해 주셔도 괜찮습니다.\n\n"
-            "감사합니다.")
+            + "\n".join(body_lines)
+            + f"\n\n{cta}\n\n{closing}{sign}{memo_block}")
 
 
 def _normalize_record(raw: object, envelope_source: str) -> dict:
@@ -375,9 +484,58 @@ def _next_task(stage: str, review_state: str = "") -> str:
     return "입력과 상태 확인"
 
 
+def _load_gtm_vault():
+    """Import pack/skills/account-crm/scripts/gtm_vault.py lazily without polluting sys.path permanently."""
+    module_path = ROOT / "pack" / "skills" / "account-crm" / "scripts" / "gtm_vault.py"
+    if not module_path.is_file():
+        return None
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("hermes_outbound_gtm_vault", module_path)
+    if spec is None or spec.loader is None:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _sync_gtm_crm(root: Path, crm_rows: list[dict], draft_rows: list[dict]) -> dict:
+    """Sync workflow outputs into GTM/Accounts, GTM/Drafts, and GTM/Pipeline.md preserving human edits."""
+    gtm = _load_gtm_vault()
+    if gtm is None or not crm_rows:
+        return {"synced": False, "accounts": 0, "drafts": 0}
+    ledger = gtm.VaultLedger(root)
+    existing = ledger.load()
+    data_fields = ("company", "action", "fit", "urgency", "fit_missing", "urgency_missing", "signals", "evidence")
+    added = updated = 0
+    for row in crm_rows:
+        k = gtm.key(row.get("company", ""))
+        if not k:
+            continue
+        if k in existing:
+            for f in data_fields:
+                if f in row:
+                    existing[k][f] = row[f]
+            updated += 1
+        else:
+            rec = {f: row.get(f) for f in data_fields}
+            rec["status"] = "발굴"
+            rec["notes"] = []
+            rec["contacted_at"] = ""
+            existing[k] = rec
+            added += 1
+    ledger.save(existing)
+    draft_count = 0
+    for d in draft_rows:
+        path = gtm.write_draft(root, d["company"], d["action"], d["draft"], d["evidence"])
+        if path:
+            draft_count += 1
+    return {"synced": True, "added": added, "updated": updated, "drafts": draft_count}
+
+
 def run_flow(vault: str | Path, input_path: str | Path | None = None, *,
              profile: dict | None = None, drafts: dict | None = None,
-             scores: dict | None = None, run_id: str | None = None) -> dict:
+             scores: dict | None = None, run_id: str | None = None,
+             sync_gtm: bool = True) -> dict:
     root = _vault(vault)
     envelope, input_name = _load_envelope(input_path)
     input_digest = _digest(envelope)
@@ -388,15 +546,31 @@ def run_flow(vault: str | Path, input_path: str | Path | None = None, *,
     drafts = drafts or {}
     scores = scores or {}
     state = _read_state(root)
+    seen_records = state.setdefault("seen_records", {})
+    diff_counts = {"new": 0, "changed": 0, "unchanged": 0}
     result = {"run_id": run_id, "source": envelope["source"], "source_status": envelope["status"],
               "errors": envelope["errors"], "input_digest": input_digest, "input": input_name,
-              "accounts": [], "completed": False}
+              "accounts": [], "diff": diff_counts, "completed": False}
+    crm_rows: list[dict] = []
+    crm_drafts: list[dict] = []
 
     if envelope["status"] == "ok":
         for record in envelope["records"]:
+            ev = record["evidence"]
+            prev_hash = seen_records.get(record["source_id"])
+            if prev_hash is None:
+                diff_status = "new"
+            elif prev_hash != ev["raw_sha256"]:
+                diff_status = "changed"
+            else:
+                diff_status = "unchanged"
+            diff_counts[diff_status] += 1
+            seen_records[record["source_id"]] = ev["raw_sha256"]
+
             if not record["company"]:
                 result["accounts"].append({"source_id": record["source_id"], "company_candidate": record["company_candidate"],
-                                            "stage": "identity_blocked", "next_task": _next_task("identity_blocked")})
+                                            "diff": diff_status, "stage": "identity_blocked",
+                                            "next_task": _next_task("identity_blocked")})
                 continue
             account_id, evidence_id = _account_id(record), _evidence_id(record)
             account_path = root / f"Accounts/{account_id}.md"
@@ -414,6 +588,7 @@ def run_flow(vault: str | Path, input_path: str | Path | None = None, *,
 
 - account_id: `{account_id}`
 - 회사 식별 신뢰도: `{record['company_confidence']}`
+- 위치: {record.get('location') or '미확인'}
 - 기술 스택: {stack}
 - 전체 근거 ({len(evidence_ids)}건):
 {evidence_links}
@@ -421,12 +596,13 @@ def run_flow(vault: str | Path, input_path: str | Path | None = None, *,
 - 초안: [[Drafts/{account_id}]]
 - 사람 검토: [[Review/{account_id}]]
 """)
-            ev = record["evidence"]
+            desc_line = f"\n- 요약/JD: {record['description']}" if record.get("description") else ""
             _machine_note(evidence_path, f"""# Evidence — {record['company']}
 
 - evidence_id: `{evidence_id}`
 - 유형: `{record['record_type']}`
-- 제목: {record['title']}
+- 변경 상태: `{diff_status}`
+- 제목: {record['title']}{desc_line}
 - source: `{ev['source']}`
 - source_id: `{ev['source_id']}`
 - 원문: {ev['url']}
@@ -442,37 +618,50 @@ def run_flow(vault: str | Path, input_path: str | Path | None = None, *,
             score = scores.get(record["source_id"], {})
             fit = score.get("fit", "unknown")
             urgency = score.get("urgency", "unknown")
+            fit_score = score.get("fit_score")
+            urgency_score = score.get("urgency_score")
+            action = score.get("action") or "리서치 필요"
+            fit_missing = score.get("fit_missing") or []
+            urgency_missing = score.get("urgency_missing") or []
             rationale = _safe_text(score.get("rationale"), "score.rationale", 2000) or "프로필 기반 점수 없음"
+            fit_score_str = "미산출(리서치 필요)" if fit_score is None else f"{fit_score}/100"
+            urg_score_str = "미산출(리서치 필요)" if urgency_score is None else f"{urgency_score}/100"
+            missing_all = fit_missing + urgency_missing
+            missing_line = f"\n- 미확인 축: {', '.join(missing_all)}" if missing_all else ""
             _machine_note(score_path, f"""# Evidence score — {record['company']}
 
 - account_id: `{account_id}`
-- evidence_coverage: `{coverage}%`
-- profile_fit: `{fit}`
-- urgency: `{urgency}`
+- 권장 액션: **{action}**
+- 적합도 점수 (Fit): `{fit_score_str}` (profile_fit: `{fit}`)
+- 긴급도 점수 (Urgency): `{urg_score_str}` (urgency: `{urgency}`)
+- 근거 충족률 (evidence_coverage): `{coverage}%`{missing_line}
 - 근거 설명: {rationale}
 - signal_type: `{record['record_type']}`
 - 전체 근거 수: `{len(evidence_ids)}`
 
-이 값은 필드 충족률이며 구매 가능성이나 영업 적합도 점수가 아닙니다. 실제 fit/urgency 판단에는 Inbox 브리프와 사람 검토가 필요합니다.
+모르는 축은 감점하지 않고 분모에서 제외합니다. 실제 연락 전 Inbox 브리프와 사람 검토가 필요합니다.
 """)
             supplied = drafts.get(record["source_id"])
             if supplied:
                 mode = _safe_text(supplied.get("mode"), "draft.mode", 20, required=True)
                 body = _safe_multiline(supplied.get("body"), "draft.body", 12000, required=True)
                 draft_body = f"> `{mode}` 모드 초안입니다. 자동 발송되지 않습니다.\n\n{body}"
+                raw_draft_text = body
             else:
                 product = _safe_text(profile.get("product"), "profile.product", 1000) or "저희 제안"
                 customer = _safe_text(profile.get("customer"), "profile.customer", 1000) or "해당 조직"
                 language = _safe_text(profile.get("draft_language"), "profile.draft_language", 40) or "ko"
+                raw_draft_text = _template_draft(record, product, customer, language, profile=profile)
                 draft_body = f"""> 규칙 기반 초안 템플릿입니다. 실제 AI 생성 결과가 아니며 자동 발송되지 않습니다. 언어: `{language}`
 
-{_template_draft(record, product, customer, language)}
+{raw_draft_text}
 
 > 검토 전 확인: 회사 동일성, 원문 최신성, 가설이 실제 상황과 맞는지, 실제 수신 대상, 과장 표현 여부."""
             draft_hash = hashlib.sha256(draft_body.encode("utf-8")).hexdigest()
             _machine_note(draft_path, f"""# Draft template — {record['company']}
 
 - account_id: `{account_id}`
+- 권장 액션: `{action}`
 - draft_content_hash: `{draft_hash}`
 - 전체 근거: {', '.join(f'[[Evidence/{item}]]' for item in evidence_ids)}
 - 검토: [[Review/{account_id}]]
@@ -483,11 +672,37 @@ def run_flow(vault: str | Path, input_path: str | Path | None = None, *,
             review_state, review_reason = _review(review_path, draft_hash)
             account_state = {"account_id": account_id, "company": record["company"],
                              "source_id": record["source_id"], "evidence_id": evidence_id,
-                             "evidence_ids": evidence_ids,
+                             "evidence_ids": evidence_ids, "diff": diff_status,
+                             "action": action, "fit_score": fit_score, "urgency_score": urgency_score,
                              "draft_hash": draft_hash, "review": review_state, "review_reason": review_reason,
                              "stage": "review", "next_task": _next_task("review", review_state)}
             state["accounts"][account_id] = account_state
             result["accounts"].append(account_state)
+
+            crm_signals = dict(score.get("signals") or {})
+            if record["record_type"] == "job_posting":
+                crm_signals.setdefault("roles", [record["title"]])
+            elif record["record_type"] == "funding_signal":
+                crm_signals.setdefault("funding", record["title"])
+            crm_signals.setdefault("sources", [ev["url"]])
+            crm_evidence = dict(score.get("evidence") or {record["record_type"]: ev["url"]})
+            crm_rows.append({
+                "company": record["company"],
+                "action": action,
+                "fit": fit_score,
+                "urgency": urgency_score,
+                "fit_missing": fit_missing,
+                "urgency_missing": urgency_missing,
+                "signals": crm_signals,
+                "evidence": crm_evidence,
+            })
+            crm_drafts.append({
+                "company": record["company"],
+                "action": action,
+                "draft": raw_draft_text,
+                "evidence": crm_evidence,
+            })
+
         result["completed"] = bool(result["accounts"]) and all(
             x.get("review") == "approved" for x in result["accounts"] if x.get("account_id")) and not any(
                 x.get("stage") == "identity_blocked" for x in result["accounts"])
@@ -495,6 +710,8 @@ def run_flow(vault: str | Path, input_path: str | Path | None = None, *,
     result["outcome"] = ("completed" if result["completed"] else "empty" if envelope["status"] == "empty"
                          else "blocked" if envelope["status"] in {"blocked", "failed", "invalid_response"}
                          else "review_required")
+    if sync_gtm and crm_rows:
+        result["gtm_sync"] = _sync_gtm_crm(root, crm_rows, crm_drafts)
     inbox_path = root / f"Inbox/{run_id}-source.md"
     _assert_managed_path(root, inbox_path)
     _machine_note(inbox_path, _inbox_receipt(result))
@@ -510,8 +727,11 @@ def run_flow(vault: str | Path, input_path: str | Path | None = None, *,
 
 
 def _run_receipt(result: dict) -> str:
+    diff = result.get("diff") or {}
+    diff_line = f"- 변경 추적: 신규 `{diff.get('new', 0)}` · 변경 `{diff.get('changed', 0)}` · 동일 `{diff.get('unchanged', 0)}`"
     lines = [f"# Run — {result['run_id']}", "", f"- source: `{result['source']}`",
              f"- source_status: `{result['source_status']}`", f"- outcome: `{result['outcome']}`",
+             diff_line,
              f"- input_digest: `{result['input_digest']}`", f"- Inbox: [[{result.get('inbox_note', '')}]]",
              "", "## 단계 결과", ""]
     if result["errors"]:
@@ -521,7 +741,8 @@ def _run_receipt(result: dict) -> str:
     for item in result["accounts"]:
         if item.get("account_id"):
             aid = item["account_id"]
-            lines.append(f"- [[Accounts/{aid}|{item['company']}]] → [[Evidence/{item['evidence_id']}|Evidence]] → "
+            badge = f"[{item.get('diff', 'new')}] {item.get('action', '')}".strip()
+            lines.append(f"- ({badge}) [[Accounts/{aid}|{item['company']}]] → [[Evidence/{item['evidence_id']}|Evidence]] → "
                          f"[[Scores/{aid}|Score]] → [[Drafts/{aid}|Draft]] → [[Review/{aid}|Review]] "
                          f"— `{item['review']}`; 다음: {item['next_task']}")
         else:

@@ -1,0 +1,66 @@
+{
+  "id": "overseas-distributor",
+  "order": 9,
+  "name": "해외 대리점 · 총판 · 수입상 개척",
+  "tagline": "수출 제조·뷰티·의료기기·산업장비·SaaS의 국가별 현지 디스트리뷰터·총판·리셀러 발굴",
+  "description": "경쟁사/유사 브랜드의 Where-to-Buy/Distributors 페이지, 해외 전시회 참가사 리스트, 수입상 디렉터리에서 현지 대리점 후보를 발굴하고 다국어 제안을 준비합니다.",
+  "default_scenario": "overseas_partner",
+  "default_workflows": ["overseas", "jobs"],
+  "default_jobs_providers": ["saramin", "wanted"],
+  "product_example": "수출용 산업장비 / 뷰티·의료기기 / B2B 솔루션 (CE·FDA·ISO 인증 보유)",
+  "customer_example": "목표 국가(북미·유럽·일본·동남아)에서 유사 카테고리 제품을 유통·총판하는 현지 디스트리뷰터·수입상",
+  "value_proposition": "인증·품질이 검증된 한국 제조 제품을 안정적인 납기와 파트너 마진 구조로 공급합니다",
+  "proof_points": "제품 스펙 시트와 인증 현황(CE/FDA/ISO), 샘플·MOQ 기준표 1장을 먼저 보내드릴 수 있습니다",
+  "keywords": "distributor, importer, reseller, wholesale, authorized dealer, partner, agent, stockist, 대리점, 총판, 수입상",
+  "job_keywords": "channel partner, distributor, regional sales, business development, import, wholesale",
+  "funding_keywords": "global expansion, distribution, export, APAC, Europe, North America",
+  "jobs_query": "해외영업, 수출입, 글로벌 BD",
+  "region": "Global, US, EU, Japan, SEA",
+  "exclude_keywords": "retail shop only, consumer review, job seeker, intern",
+  "outreach": {
+    "language": "en",
+    "tone": "concise",
+    "channel": "email",
+    "cta": "If you are not adding new lines this quarter, no worries at all — otherwise happy to send a 1-page spec & margin overview.",
+    "hook_templates": {
+      "overseas_partner": "Saw that you distribute similar lines in {title} and wanted to check one thing.",
+      "job_posting": "Saw your {title} expansion note and wanted to send a quick partner inquiry."
+    }
+  },
+  "scoring": {
+    "cutoff": {"call_now": 68, "nurture": 45, "min_coverage": 0.4},
+    "fit": {
+      "weights": {"revenue_model": 30, "industry": 30, "size": 20, "tech_stack": 20},
+      "revenue_model_bands": [
+        ["distributor|importer|wholesale|authorized dealer|master distributor|reseller|총판|대리점|수입상", 1.0],
+        ["partner|agent|trading|stockist|value-added reseller|VAR|SI", 0.85],
+        ["retail|marketplace|ecommerce", 0.5]
+      ],
+      "industry_bands": [
+        ["medical|beauty|cosmetic|industrial|automation|equipment|manufacturing|electronics|healthcare|SaaS|B2B", 1.0],
+        ["consumer|food|beverage|logistics|energy|chemical", 0.8],
+        ["agency|consulting", 0.45]
+      ],
+      "size_bands": [
+        ["regional|nationwide|multi-country|warehouse|service center|showroom|exhibitor", 1.0],
+        ["established|b2b|dealer network", 0.8],
+        ["small|solo", 0.5]
+      ],
+      "tech_stack_bands": [
+        ["CE|FDA|PMDA|ISO|GMP|RoHS|UL|customs|cold chain|warranty|after-sales", 1.0],
+        ["ERP|B2B portal|Shopify|Amazon|SAP", 0.75]
+      ]
+    },
+    "urgency": {
+      "weights": {"exec_signal": 20, "funding": 20, "hiring": 25, "event_signal": 20, "competitor": 15},
+      "event_signal_bands": [
+        ["trade show|exhibitor|expo|MEDICA|Cosmoprof|Hannover|CES|GITEX|전시회|부스", 1.0],
+        ["new line|expansion|catalog|launch", 0.8]
+      ],
+      "hiring_bands": [
+        ["sales manager|channel|distributor|import|territory|account manager", 1.0],
+        ["business development|marketing|operations", 0.7]
+      ]
+    }
+  }
+}

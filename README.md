@@ -77,20 +77,54 @@ Linux Docker Engine, macOS/Windows Docker Desktop(Linux containers)을 지원하
 플러그인 파일/컨테이너 설치와 실제 계정 로그인·Hermes 로드·추천 모델 도구 호출·자동 라우팅 활성화는
 별개입니다. 현재 실기기/실계정 완료로 인증한 제품은 아닙니다.
 
+## 영업 직군별 커스텀 · 브로셔/발신함 자동 분석
+
+영업 직군·업종(B2B SaaS, HR, 제조/스마트팩토리, 마케팅/커머스, 물류/수출입, 클라우드/보안, 핀테크/재무, 공공 B2G)에 맞춰
+정규식 없이 프로필·채점 기준·문체를 바로 맞출 수 있습니다.
+
+```sh
+# 1) 프리셋 목록 보기 / 초기화 / 미리보기
+python3 profile.py presets
+python3 profile.py init --preset manufacturing-smartfactory --output setup.json --sync --force
+python3 profile.py preview --config setup.json
+
+# 2) 브로셔(.pptx/.docx/.pdf/.md) + 자사/경쟁사 홈페이지 자동 분석 → 타깃팅 인사이트 & setup.json 생성
+python3 profile.py bootstrap --company-url https://company.example.com --competitor-url https://competitor.example.com --brochure ./brochure.pptx --output setup.json --insights ./Targeting-Insights.md --sync --force
+
+# 3) 개인 발신메일함(.mbox/.eml/Thunderbird/Apple Mail/읽기 전용 IMAP) 구조·톤앤매너 분석 (개인정보 익명화)
+python3 profile.py style --discover
+python3 profile.py style --mbox ~/Downloads/Sent.mbox --config setup.json --apply
+
+# 4) LinkedIn ICP -> Apify 회사·담당자 소싱(또는 Sales Nav CSV) -> 워밍업 & 300자 연결요청/DM
+python3 linkedin_outbound.py xray --config setup.json
+python3 linkedin_outbound.py run --config setup.json --contacts-file ./sales-nav.csv --vault ~/Documents/Hermes-GTM
+
+# 5) 해외 B2B 엔드유저 직접 영업 & 대리점·총판 발굴 (EN/JA/DE/KO 네이티브 초안 + LinkedIn 핸드오프)
+python3 distributor_finder.py --mode end_user --config setup.json --file ./targets.csv --country US --country DE --country JP --vault ~/Documents/Hermes-GTM
+python3 distributor_finder.py --mode distributor --config setup.json --distributor-url https://competitor.example.com/distributors --country DE --vault ~/Documents/Hermes-GTM
+
+# 6) GTMOS식 스팸어·상투어·분량 린터 & 1~4차 멀티터치 시퀀스 / 답장 11라벨·자동 DNC / 미팅 브리프·도메인 헬스
+python3 copy_guard.py sequence --company "예시기업" --title "데이터 엔지니어" --config setup.json
+python3 reply_tracker.py --input ./replies.csv --sent 300 --apply-suppression --home ~/.hermes-outbound --vault ~/Documents/Hermes-GTM
+python3 meeting_and_health.py prep --company "예시기업" --vault ~/Documents/Hermes-GTM
+python3 meeting_and_health.py health --domain example.com
+```
+
+- **선택 효율화(TypeSafe AI Jev)**: `$HERMES_HOME/.env`에 `TYPESAFE_API_KEY`(또는 `JEV_API_KEY`)를 두고 `setup.json`에서 `"jev_enabled": true`를 켜면, 대량 계정 사전 필터링·적합/긴급 채점·답장 의도 분류·초안 과장/환각 검수를 고속 처리합니다. 키가 없으면 자동으로 로컬 규칙 엔진으로 동작합니다.
+
 ## 포함/미포함
 
-- 포함: 대화형 설정 도구, 단계별 실행기·상태 기록, SSH 접속 준비, 오프라인 구성 화면,
-  독립 skill home 설치, 봇 인증/allowlist, 선택 서비스 인증 discovery,
-  채용 파일·공개 ATS·Wanted·Saramin·투자 소스 adapter, 근거→초안→검토 Obsidian 체인,
-  ICP·리스트·초안 검수 스킬과 AI 설치 지원 스킬.
-- 자동 발송과 native GUI 패키징은 포함하지 않습니다. OMH/OmniRoute는 선택 시 현재 helper와
+- 포함: 영업 직군 프리셋(8종) 및 `profile.py` 커스텀/브로셔·홈페이지 분석/발신함 문체 분석기, 대화형 설정 도구,
+  단계별 실행기·상태 기록, SSH 접속 준비, 오프라인 구성 화면(`wizard.html`), 독립 skill home 설치, 봇 인증/allowlist,
+  선택 서비스 인증 discovery(Jev/Webshare/Groq/Apify/Composio), 멀티 보드 채용(원티드·사람인·잡코리아·점핏·Greenhouse/Lever/Ashby/Greeting)·투자(Platum/VentureSquare+채용 보강)·나라장터(G2B)·해외 RSS/글로벌 ATS 수집기,
+  2축(Fit×Urgency) 채점, 근거→초안→검토→GTM 파이프라인 통합 Obsidian 볼트, AI 설치 지원 스킬.
+- 자동 발송, 로그인/CAPTCHA 우회, native GUI 패키징은 포함하지 않습니다. OMH/OmniRoute는 선택 시 현재 helper와
   호환성 검증 결과를 확인해야 하며, 선택했다는 이유로 설치·모델 라우팅 완료로 보지 않습니다.
 - 모델 응답과 실채널 연결, Mac/Windows 실행은 실제 계정/기기에서 추가 확인해야 합니다.
 
 ## 포함된 업무 스킬
 
-세일즈 아웃바운드(ICP → 계정 발굴 → 채용·투자·뉴스 신호 → 리서치 → 적합도×긴급도 채점 → 초안 → 검수),
-투자·채용 신호 기반 계정 발굴(투자 유치 기업 → 채용 보강 → 적합도×긴급도 채점 → 초안 → 계정 CRM)까지 GTM 스킬 24개가 함께 설치됩니다.
+세일즈 아웃바운드(프로필 커스텀 → ICP → 계정 발굴 → 채용·투자·뉴스·조달 신호 → 리서치 → 적합도×긴급도 채점 → 초안 → 검수 → 계정 CRM)까지 GTM 스킬 25개가 함께 설치됩니다.
 목록, 사용자 설정 파일 위치, 외부로 나가는 데이터, 출처·라이선스는 [포함된 스킬](docs/SKILLS.md)을 보세요.
 
 ## 워크숍 자료
