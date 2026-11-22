@@ -253,6 +253,70 @@ class TestPublicDataLensAndLiveMarketIntel(unittest.TestCase):
                 self.assertEqual(loaded_cfg["stt"]["provider"], "groq")
                 self.assertEqual(loaded_cfg["mcp_servers"]["composio"]["enabled"], True)
 
+    def test_knowledge_base_icp_skills_and_learnings_json_gate(self):
+        import reply_tracker
+
+        # 1) All 6 skills reference the vault knowledge base for ICP/targeting/scoring
+        skill_checks = {
+            "outbound": ["볼트 지식베이스 먼저 읽기", ".learnings.json", "gtm-icp-brief"],
+            "gtm-icp-brief": ["볼트 지식베이스 먼저 읽기", "빈 칸만"],
+            "outbound-scoring": ["볼트 지식베이스 먼저 읽기", "20건 이상"],
+            "lead-prospecting": ["볼트 지식베이스 먼저 읽기", "경쟁사 비교와 영업 판단.md"],
+            "profile-customizer": ["볼트 지식베이스 먼저 읽기", "do-not-contact.txt"],
+            "linkedin-cold-messaging": ["볼트 지식베이스 먼저 읽기", "구매 결정자"],
+        }
+        for skill_name, markers in skill_checks.items():
+            text = (ROOT / "pack" / "skills" / skill_name / "SKILL.md").read_text(encoding="utf-8")
+            for marker in markers:
+                self.assertIn(marker, text, f"{skill_name} missing marker: {marker}")
+
+        # 2) GTM/.learnings.json accumulates signal replies and gates weight tuning at >= 20
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "vault"
+            batch1 = [
+                {
+                    "lead_id": f"h-{i}",
+                    "company": f"채용기업{i}",
+                    "subject": "Re: 문의",
+                    "body": "네, 미팅 가능할까요? 관심 있습니다.",
+                    "signal_type": "채용 공고",
+                }
+                for i in range(12)
+            ] + [
+                {
+                    "lead_id": f"f-{i}",
+                    "company": f"투자기업{i}",
+                    "subject": "Re: 문의",
+                    "body": "지금은 시기가 아닙니다.",
+                    "signal_type": "funding",
+                }
+                for i in range(5)
+            ]
+            res1 = reply_tracker.score_campaign_replies(batch1, total_sent=200, campaign_name="wave-1", vault=vault)
+            self.assertEqual(res1["learnings_summary"]["eligible_signals_for_weight_tuning"], [])
+            learn_json = json.loads((vault / "GTM" / ".learnings.json").read_text(encoding="utf-8"))
+            self.assertEqual(learn_json["signals"]["hiring"]["net_replies"], 12)
+            self.assertFalse(learn_json["signals"]["hiring"]["eligible_for_weight_tuning"])
+
+            # Second wave pushes hiring replies to 22 (>= 20), unlocking weight tuning for hiring only
+            batch2 = [
+                {
+                    "lead_id": f"h2-{i}",
+                    "company": f"채용기업2-{i}",
+                    "subject": "Re: 문의",
+                    "body": "자료 먼저 부탁드립니다.",
+                    "signal_type": "hiring",
+                }
+                for i in range(10)
+            ]
+            res2 = reply_tracker.score_campaign_replies(batch2, total_sent=200, campaign_name="wave-2", vault=vault)
+            self.assertEqual(res2["learnings_summary"]["eligible_signals_for_weight_tuning"], ["hiring"])
+            learn_json2 = json.loads((vault / "GTM" / ".learnings.json").read_text(encoding="utf-8"))
+            self.assertEqual(learn_json2["signals"]["hiring"]["net_replies"], 22)
+            self.assertTrue(learn_json2["signals"]["hiring"]["eligible_for_weight_tuning"])
+            self.assertFalse(learn_json2["signals"]["funding"]["eligible_for_weight_tuning"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

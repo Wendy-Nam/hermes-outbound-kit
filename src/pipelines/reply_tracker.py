@@ -10,7 +10,8 @@ Features:
 - Deduplicates to first reply per lead, excludes OOO & bounces from net denominator
 - Computes Positive Reply Rate (north-star), hostile risk (>0.3%), and unsubscribe risk (>2%)
 - Automatically appends unsubscribe / bounce / hostile contacts to $HERMES_HOME/do-not-contact.txt
-- Writes Obsidian GTM/Results.md and appends campaign takeaways to GTM/LEARNINGS.md
+- Writes Obsidian GTM/Results.md, appends campaign takeaways to GTM/LEARNINGS.md,
+  and updates structured signal reply stats in GTM/.learnings.json (20+ replies gate for weight tuning)
 """
 from __future__ import annotations
 from pathlib import Path as _BootPath
@@ -37,6 +38,8 @@ if str(ROOT) not in sys.path:
 import paths  # noqa: E402
 import sources  # noqa: E402
 import style_analyzer  # noqa: E402
+
+MIN_SIGNAL_REPLIES_FOR_WEIGHT_TUNING = 20
 
 LABELS = (
     "positive_interested",
@@ -185,9 +188,105 @@ def load_replies_file(path: str | Path) -> list[dict[str, str]]:
             "subject": sources.clean_text(row.get("subject") or row.get("Subject") or ""),
             "body": str(row.get("body") or row.get("Body") or row.get("reply") or row.get("text") or "").strip(),
             "angle": sources.clean_text(row.get("angle") or row.get("Angle") or row.get("signal") or ""),
+            "signal_type": sources.clean_text(
+                row.get("signal_type") or row.get("signal") or row.get("Signal") or row.get("angle") or row.get("Angle") or ""
+            ),
             "date": sources.clean_text(row.get("date") or row.get("Date") or ""),
         })
     return out
+
+
+def _normalize_signal_bucket(raw: str) -> str:
+    """Normalize a signal or angle label into a canonical bucket (hiring/funding/tender/overseas/other)."""
+    text = (raw or "").strip().casefold()
+    if not text:
+        return "unspecified"
+    if any(tok in text for tok in ("hiring", "채용", "job", "ats", "wanted", "saramin", "jobkorea", "jumpit")):
+        return "hiring"
+    if any(tok in text for tok in ("funding", "투자", "series", "시리즈", "round", "platum", "venturesquare")):
+        return "funding"
+    if any(tok in text for tok in ("tender", "입찰", "g2b", "나라장터", "발주", "조달", "공고")):
+        return "tender"
+    if any(tok in text for tok in ("overseas", "해외", "export", "distributor", "총판", "대리점", "partner")):
+        return "overseas"
+    return text
+
+
+def _update_learnings_json(
+    gtm_dir: Path,
+    *,
+    campaign_name: str,
+    now_day: str,
+    total_sent: int,
+    net_replies: int,
+    positive_n: int,
+    signal_total: Counter[str],
+    signal_pos: Counter[str],
+) -> tuple[Path, dict[str, Any]]:
+    """Accumulate per-signal reply stats into GTM/.learnings.json with 20-reply weight-tuning gate."""
+    learn_json_path = gtm_dir / ".learnings.json"
+    existing: dict[str, Any] = {}
+    if learn_json_path.is_file():
+        try:
+            loaded = json.loads(learn_json_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                existing = loaded
+        except (OSError, json.JSONDecodeError):
+            existing = {}
+
+    signals_map: dict[str, dict[str, Any]] = {}
+    raw_signals = existing.get("signals")
+    if isinstance(raw_signals, dict):
+        for k, v in raw_signals.items():
+            if isinstance(v, dict):
+                signals_map[str(k)] = {
+                    "net_replies": int(v.get("net_replies", 0)),
+                    "positive": int(v.get("positive", 0)),
+                }
+
+    for sig, tot in signal_total.items():
+        entry = signals_map.setdefault(sig, {"net_replies": 0, "positive": 0})
+        entry["net_replies"] += int(tot)
+        entry["positive"] += int(signal_pos.get(sig, 0))
+
+    final_signals: dict[str, dict[str, Any]] = {}
+    eligible_signals: list[str] = []
+    for sig, stats in sorted(signals_map.items(), key=lambda kv: (-kv[1]["net_replies"], kv[0])):
+        tot = stats["net_replies"]
+        pos = stats["positive"]
+        eligible = sig != "unspecified" and tot >= MIN_SIGNAL_REPLIES_FOR_WEIGHT_TUNING
+        if eligible:
+            eligible_signals.append(sig)
+        final_signals[sig] = {
+            "net_replies": tot,
+            "positive": pos,
+            "positive_share_pct": round((pos / tot) * 100, 1) if tot else 0.0,
+            "eligible_for_weight_tuning": eligible,
+        }
+
+    campaigns = existing.get("campaigns")
+    if not isinstance(campaigns, list):
+        campaigns = []
+    top_signal = signal_total.most_common(1)[0][0] if signal_total else "unspecified"
+    campaigns.append({
+        "date": now_day,
+        "campaign_name": campaign_name,
+        "total_sent": total_sent,
+        "net_replies": net_replies,
+        "positive_replies": positive_n,
+        "top_signal": top_signal,
+    })
+
+    payload = {
+        "schema_version": "hermes_learnings/v1",
+        "min_replies_for_weight_tuning": MIN_SIGNAL_REPLIES_FOR_WEIGHT_TUNING,
+        "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "eligible_signals_for_weight_tuning": eligible_signals,
+        "signals": final_signals,
+        "campaigns": campaigns[-100:],
+    }
+    learn_json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return learn_json_path, payload
 
 
 def apply_auto_suppression(suppressed_entries: list[dict[str, str]], home: str | Path) -> dict[str, Any]:
@@ -258,16 +357,21 @@ def score_campaign_replies(
     counts: Counter[str] = Counter()
     angle_pos: Counter[str] = Counter()
     angle_total: Counter[str] = Counter()
+    signal_pos: Counter[str] = Counter()
+    signal_total: Counter[str] = Counter()
     suppress_candidates: list[dict[str, str]] = []
 
     for r in first_per_lead:
         cls = classify_reply(r.get("body", ""), subject=r.get("subject", ""), use_jev=use_jev, home=home, opener=opener)
         counts[cls["label"]] += 1
         angle = r.get("angle") or "unspecified"
+        sig_bucket = _normalize_signal_bucket(r.get("signal_type") or r.get("signal") or r.get("angle") or "")
         if cls["label"] not in {"ooo", "bounce"}:
             angle_total[angle] += 1
+            signal_total[sig_bucket] += 1
             if cls["is_positive"]:
                 angle_pos[angle] += 1
+                signal_pos[sig_bucket] += 1
         if cls["needs_suppression"]:
             suppress_candidates.append({
                 "company": r.get("company") or "",
@@ -372,7 +476,26 @@ def score_campaign_replies(
         )
         with learn_path.open("a", encoding="utf-8") as fh:
             fh.write(entry)
-        report["vault_files"] = {"results": str(results_path), "learnings": str(learn_path)}
+
+        learn_json_path, learnings_payload = _update_learnings_json(
+            gtm_dir,
+            campaign_name=campaign_name,
+            now_day=now_day,
+            total_sent=total_sent,
+            net_replies=net_replies,
+            positive_n=positive_n,
+            signal_total=signal_total,
+            signal_pos=signal_pos,
+        )
+        report["learnings_summary"] = {
+            "min_replies_for_weight_tuning": learnings_payload["min_replies_for_weight_tuning"],
+            "eligible_signals_for_weight_tuning": learnings_payload["eligible_signals_for_weight_tuning"],
+        }
+        report["vault_files"] = {
+            "results": str(results_path),
+            "learnings": str(learn_path),
+            "learnings_json": str(learn_json_path),
+        }
 
     return report
 
