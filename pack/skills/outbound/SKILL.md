@@ -54,7 +54,7 @@ Pick the narrower skill when the request matches it; all of them keep the same r
 | News/public signals | `naver-news-search`, `news-monitoring-briefing`, `buying-signals`, `korean-public-research`, `overseas-partner-research` |
 | Research a company/person | `prospect-research`, `web-reader` |
 | Prioritise | `outbound-scoring` (fit × urgency incl. funding/hiring, coverage gate; `signals_to_accounts.py` converts collected signals), `lead-prospecting` BANT scorer |
-| Draft | `evidence-to-outreach`, `signal-outreach-draft`, `linkedin-cold-messaging`, then `korean-humanizer` for tone |
+| Draft | `evidence-to-outreach`, `signal-outreach-draft`, `cold-outreach-draft` (batch CSV + HTML 근거 교차검증 패널), `linkedin-cold-messaging`, then `korean-humanizer` (사용자 말투 보존 모드) for tone |
 | QA | `gtm-list-qa`, `gtm-copy-qa` |
 | Track | `account-crm` (human-edited status and notes are never overwritten) |
 

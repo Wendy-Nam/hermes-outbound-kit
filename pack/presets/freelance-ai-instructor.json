@@ -1,0 +1,94 @@
+{
+  "id": "freelance-ai-instructor",
+  "order": 11,
+  "name": "프리랜서 AI 강사 · 출강 · 비즈니스 컨설턴트",
+  "tagline": "기업 출강(AI 실무·AX 워크숍), 리더십 특강, 업무 자동화·비즈니스 컨설팅을 기업·기관에 직접 제안",
+  "description": "HRD·AX 채용 공고, 나라장터 교육·컨설팅 용역, 투자 직후 조직 확장 기업, 강사플랫폼/세미나, LinkedIn·콜드메일 직접 제안을 하나의 흐름으로 묶어 수주 기회를 발굴합니다.",
+  "default_scenario": "job_signal",
+  "default_workflows": ["jobs", "tenders", "funding"],
+  "default_jobs_providers": ["wanted", "saramin", "jobkorea"],
+  "product_example": "임직원 직무별 생성형 AI 실무 워크숍 · 리더십 AX 특강 · 4주 업무 자동화 컨설팅",
+  "customer_example": "HRD·교육담당자, AX/DX 추진팀장, 50~1,000인 기업 대표·임원, 공공기관·테크노파크·대학 산학협력단 교육 담당자",
+  "value_proposition": "이론 강의에 그치지 않고 실제 부서 문서·데이터로 바로 결과를 만드는 실습형 출강과 사내 정착 컨설팅을 진행합니다",
+  "proof_points": "직무별 1장짜리 커리큘럼 예시와 출강 사례 요약(업종·규모 기준)을 먼저 보내드릴 수 있습니다",
+  "keywords": "AI 교육, 생성형 AI, AX, DX, 기업교육, HRD, L&D, 임직원 워크숍, 디지털 전환, 업무 자동화, 비즈니스 컨설팅",
+  "job_keywords": "HRD, 교육담당자, L&D, AX, DX, AI 전환, 조직문화, 피플팀, 디지털 전환, 혁신팀",
+  "funding_keywords": "AI, AX, 디지털 전환, 시리즈 A, 시리즈 B, 조직 확장, 신규 채용",
+  "g2b_keywords": "AI 교육, 생성형 AI, 디지털 역량강화, 임직원 교육, AX 컨설팅, 직무 워크숍",
+  "jobs_query": "HRD, 교육담당자, AX, AI 전환",
+  "region": "서울, 경기, 판교, 전국(출강/온라인)",
+  "exclude_keywords": "아르바이트, 단기, 도급, 학원 강사, 입시, 초등, 중등, 고등",
+  "recommended_channels": {
+    "direct_corporate_outreach": {
+      "label": "기업 직접 제안 (콜드메일 · LinkedIn DM)",
+      "target_roles": ["HRD 담당자", "L&D 매니저", "교육팀장", "AX/DX 팀장", "피플팀 리드", "대표이사/임원"],
+      "how_to_use": [
+        "python3 outbound.py linkedin xray --config setup.json 으로 HRD/AX 담당자 검색",
+        "python3 outbound.py draft generate --profile pack/skills/cold-outreach-draft/references/profiles/example-freelance-instructor.json --leads samples/leads-freelance-instructor.csv --out ./output/instructor-drafts --html ./output/instructor-review.html",
+        "python3 outbound.py draft contacts <leads.csv> <contacts.csv> 로 기업 홈페이지 공개 교육/제휴 문의 페이지 확인 (이메일 자동 수집 금지)"
+      ]
+    },
+    "instructor_and_b2b_platforms": {
+      "label": "강사 플랫폼 · 세미나 · 프로젝트 매칭 (공고 외 채널)",
+      "sources": [
+        {"name": "패스트캠퍼스 · 멀티캠퍼스 · 휴넷 (B2B 기업교육)", "motion": "강사 풀 등록 + 기업교육 커리큘럼 1장 제안서 공유"},
+        {"name": "온오프믹스 · 이벤터스 (기업/협회 세미나)", "motion": "주최 기업·협회 파악 후 후속 사내 맞춤형 워크숍 제안"},
+        {"name": "크몽(B2B/전문가) · 위시켓 · 프리모아", "motion": "업무 자동화·AI 도입 컨설팅 수요 기업 파악 및 포트폴리오 연계"}
+      ]
+    },
+    "public_and_university": {
+      "label": "공공기관 · 협회 · 대학 출강 채널",
+      "sources": [
+        {"name": "나라장터(G2B) 발주계획·사전규격·입찰공고", "motion": "python3 outbound.py g2b --keywords \"AI 교육,생성형 AI,역량강화,AX 컨설팅\" --stages order_plan,prespec,bid_notice"},
+        {"name": "K-Startup · 창조경제혁신센터 · 테크노파크(TP) · 대한상공회의소 · 대학 산학협력단", "motion": "분기별 재직자·창업기업 교육 공고 CSV/URL 수집 후 cold-outreach-draft로 맞춤 제안서 초안 생성"}
+      ]
+    }
+  },
+  "outreach": {
+    "language": "ko",
+    "tone": "consultative",
+    "channel": "email",
+    "cta": "관심이 있으시면 편하게 회신 부탁드립니다. 직무 구성에 맞춘 1장짜리 커리큘럼 예시와 강사 프로필을 먼저 보내드리겠습니다.",
+    "hook_templates": {
+      "job_posting": "「{title}」 공고를 보고 임직원 AI 실무 교육·AX 정착에 참고하실 만한 구성이 있어 연락드립니다.",
+      "funding_signal": "「{title}」 소식을 보고 조직 확장 시기에 맞춘 팀별 AI 실무 워크숍을 짧게 제안드립니다.",
+      "procurement": "나라장터 「{title}」 공고를 보고 실습 중심 출강 커리큘럼을 안내드리고자 연락드립니다."
+    }
+  },
+  "scoring": {
+    "cutoff": {"call_now": 68, "nurture": 45, "min_coverage": 0.4},
+    "fit": {
+      "weights": {"revenue_model": 15, "industry": 30, "size": 30, "tech_stack": 25},
+      "revenue_model_bands": [
+        ["B2B|엔터프라이즈|SaaS|제조|금융|커머스|플랫폼|공공|협회|대학", 0.95],
+        ["솔루션|유통|물류|바이오|헬스케어|미디어|컨설팅", 0.8]
+      ],
+      "industry_bands": [
+        ["IT|SaaS|이커머스|핀테크|제조|금융|바이오|물류|공공|교육|협회|대학", 1.0],
+        ["유통|헬스케어|미디어|건설|서비스|스타트업", 0.8]
+      ],
+      "size_bands": [
+        ["중견|대기업|상장|시리즈\\s*[BC]|공공기관|테크노파크|[1-9][0-9]{2}명|[1-9][0-9]{3,}명", 1.0],
+        ["시리즈\\s*A|스케일업|[5-9][0-9]명", 0.85],
+        ["시드|[2-4][0-9]명", 0.55]
+      ],
+      "tech_stack_bands": [
+        ["ChatGPT|Claude|Copilot|Notion|Slack|MS 365|Google Workspace|자동화|n8n|Make|Zapier|LLM", 1.0],
+        ["그룹웨어|ERP|CRM|Salesforce|HubSpot|Python|데이터", 0.8],
+        ["엑셀|수기|보고서|문서", 0.7]
+      ]
+    },
+    "urgency": {
+      "weights": {"exec_signal": 25, "funding": 20, "hiring": 30, "event_signal": 15, "competitor": 10},
+      "hiring_bands": [
+        ["HRD|L&D|교육담당|기업교육|AX|DX|AI 전환|디지털 전환|사내교육", 1.0],
+        ["인사|HRBP|피플|조직문화|경영지원|혁신|전략기획", 0.8],
+        ["팀장|본부장|리드|매니저", 0.6]
+      ],
+      "exec_bands": [
+        ["AI 도입|AX|전사 교육|역량강화|생성형 AI|업무 자동화|디지털 전환", 1.0],
+        ["생산성|효율화|워크숍|세미나|컨설팅|온보딩", 0.75]
+      ]
+    }
+  }
+}

@@ -1,0 +1,7 @@
+id,lead,signal,detail,site,channels,tool,industry,size,role,product_interest,known,homepage,evidence_url,evidence_date,evidence_excerpt
+1,(주)가나몰,hire,CS 고객상담 및 운영 담당자 채용,채용사이트A,쇼핑몰,없음,전자상거래 소매업,50,,,,https://ganamall.example.com,https://jobs.example.com/101,2026-11-18,쇼핑몰 배송·교환 CS 상담 및 게시판 응대 인력 충원
+2,다라상사,hire,,채용사이트A,전화|카카오,,도소매,10,,,,https://dara.example.com,https://jobs.example.com/102,2026-11-19,전화 및 카카오 채널 고객 응대 담당자 모집
+3,마바소프트,hire,CS팀 인바운드 상담 직원,채용사이트B,,없음,응용 소프트웨어 개발 및 공급업,50,,,,https://mabasoft.example.com,https://jobs.example.com/103,2026-11-20,SaaS 제품 사용법 및 매뉴얼 기반 고객 문의 응대
+4,사아브랜드,hire,브랜드 CS 매니저,채용사이트A,,,화장품,50,CS 매니저,,,https://saabrand.example.com,https://jobs.example.com/104,2026-11-21,CS 매니저 채용 - 상담사 운영 및 응답 지표 관리
+5,자차컴퍼니,inquiry,올해 1월,,,,,,,다른부서제품,,https://jacha.example.com,https://crm.example.com/inq/5,2026-01-15,타 부서 제품 문의 이력
+6,카타리테일,hire,온라인 쇼핑몰 CS,채용사이트B,쇼핑몰,,전자상거래,300,,,,https://kata.example.com,https://jobs.example.com/106,2026-11-22,대규모 온라인 쇼핑몰 고객상담팀 채용

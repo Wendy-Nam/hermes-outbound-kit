@@ -38,7 +38,7 @@ COMMANDS: dict[str, tuple[str, list[str], str]] = {
     "env": ("env_helper", [], ".env API 키 숨김 저장(set/unset) & 무료 Crawl4AI·tesseract 도구 진단(status)"),
     "kit": ("kit", [], "설정 검증·스킬 설치·모델·채널·진단 (validate/install/doctor/chat/gateway)"),
     "validate": ("kit", ["validate"], "setup.json 유효성 검사"),
-    "install": ("kit", ["install"], "$HERMES_HOME에 25개 스킬·10종 프리셋 설치"),
+    "install": ("kit", ["install"], "$HERMES_HOME에 26개 스킬·11종 프리셋 설치"),
     "doctor": ("kit", ["doctor"], "설치 환경 진단"),
     "profile": ("profile", [], "직군 프리셋·커스텀·브로셔 분석(bootstrap)·발신함 분석(style)·DNC·ATS"),
     "run": ("workflow", ["run"], "국내 채용·투자·나라장터·해외 파이프라인 실행 -> Obsidian 볼트"),
@@ -52,6 +52,8 @@ COMMANDS: dict[str, tuple[str, list[str], str]] = {
     "crm": ("crm_board", [], "Obsidian Kanban 보드(CRM Board.md) 동기화 · 단계변경 · 전략문서 · 볼트 무결성 감사"),
     "briefing": ("daily_briefing", [], "오늘 리드·미발송 초안·G2B·경쟁사 신호·볼트 감사 데일리 브리핑"),
     "copy": ("copy_guard", [], "스팸어·쉬운 한국어 문서 문체 린터(lint --mode doc) & 1~4차 멀티터치 시퀀스"),
+    "draft": ("_cold_outreach_draft", [], "범용 콜드메일·DM 일괄 초안 생성(generate) & 공개 연락 창구 수집(contacts)"),
+    "review": ("review_panel", [], "개인화 초안·근거 원문 링크 교차검증 단일 HTML 패널 생성"),
     "replies": ("reply_tracker", [], "답장 11라벨 분류 · 긍정 회신율 · 자동 DNC 차단 · LEARNINGS 누적"),
     "meeting": ("meeting_and_health", [], "미팅 전 1장 브리핑(prep) · 미팅 후 리캡/Plaud 녹음 전사(post --audio-file)"),
     "transcribe": ("audio_transcribe", [], "Plaud·미팅 녹음(.mp3/.m4a/.wav) 무료 Groq Whisper 한국어 전사"),
@@ -77,6 +79,28 @@ def _print_help() -> None:
     print("자세한 한국어 사용법은 docs/MANUAL.md를 참고하세요.")
 
 
+def _run_cold_outreach_draft(rest: list[str]) -> int:
+    import importlib.util
+    scripts_dir = ROOT / "pack" / "skills" / "cold-outreach-draft" / "scripts"
+    if not rest or rest[0] in ("-h", "--help", "help"):
+        print("사용법: python3 outbound.py draft <generate|contacts> [옵션...]\n")
+        print("  generate   프로필 JSON + 리드 CSV -> 콜드메일·DM 초안 생성 (+ --copy-guard / --use-jev / --html)")
+        print("  contacts   리드 홈페이지 공개 연락 창구 수집 (이메일 자동 수집 금지, SSRF/TLS 안전)")
+        return 0
+    sub, sub_rest = rest[0], rest[1:]
+    script_map = {"generate": scripts_dir / "gen_drafts.py", "contacts": scripts_dir / "collect_contacts.py"}
+    target = script_map.get(sub)
+    if target is None or not target.is_file():
+        print(f"알 수 없는 draft 하위 명령입니다: {sub} (generate 또는 contacts 사용)", file=sys.stderr)
+        return 2
+    spec = importlib.util.spec_from_file_location(f"hermes_cold_draft_{sub}", target)
+    if spec is None or spec.loader is None:
+        return 1
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return int(mod.main(sub_rest) or 0)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     if not args or args[0] in ("-h", "--help", "help"):
@@ -95,6 +119,8 @@ def main(argv: list[str] | None = None) -> int:
         import runpy
         runpy.run_path(str(ROOT / "scripts" / "build_bundle.py"), run_name="__main__")
         return 0
+    if cmd == "draft":
+        return _run_cold_outreach_draft(rest)
 
     if cmd == "vault" and rest and rest[0] == "audit":
         mod = importlib.import_module("crm_board")

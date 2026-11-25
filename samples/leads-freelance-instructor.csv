@@ -1,0 +1,7 @@
+id,lead,signal,detail,site,channels,tool,industry,size,role,product_interest,known,homepage,evidence_url,evidence_date,evidence_excerpt
+1,(주)가온제조,hire,사내 HRD·임직원 교육 담당자 채용,원티드,기업교육,,제조/소재,300,HRD 담당자,,,https://gaon-mfg.example.com,https://jobs.example.com/hrd-201,2026-11-20,전사 디지털·AI 역량강화 사내 교육 과정 기획 및 외부 강사 섭외 담당
+2,넥스트커머스,linkedin,전사 생성형 AI 도입 및 팀별 활용 가이드 구축,링크드인,링크드인DM,,이커머스,250,AX 팀장,,,https://nextcommerce.example.com,https://linkedin.example.com/posts/ax-202,2026-11-21,AX 추진팀장 공개 포스트: 부서별 생성형 AI 활용 편차를 줄일 실무 기준 검토 중
+3,샘플테크노파크,tender,중소기업 재직자 생성형 AI 실무 역량강화 교육 용역,나라장터,공공출강,,공공기관,150,교육담당자,,,https://tp.example.com,https://g2b.example.com/bid/203,2026-11-19,2026년 재직자 대상 실습형 생성형 AI 활용 워크숍 및 교안 제작 발주계획
+4,브릿지핀테크,funding,시리즈 B 투자 유치 및 조직 확장,플래텀,콜드메일,,핀테크/IT,180,피플팀 리드,,,https://bridgefintech.example.com,https://news.example.com/funding-204,2026-11-17,시리즈 B 투자 이후 신규 입사자 증가에 따른 전사 업무 생산성 체계 정비
+5,하늘물류,default,영업·운영팀 반복 리포트 업무 자동화 검토,홈페이지,컨설팅|자동화,,물류/유통,120,운영본부장,,,https://haneul-logi.example.com,https://haneul-logi.example.com/about,2026-11-22,기업 홈페이지 공개 소개: 물류 정산 및 주간 보고 업무 디지털 전환 추진
+6,오픈세미나협회,platform,2026 B2B 실무자 AI 생산성 세미나,이벤터스,강사플랫폼,,협회/교육,80,교육기획 매니저,,,https://openseminar.example.com,https://event.example.com/seminar-206,2026-11-23,비개발 직군 실무자 대상 AI 문서·데이터 활용 세미나 및 후속 기업 출강 수요

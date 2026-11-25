@@ -255,6 +255,127 @@ def score_record_with_jev(
     }
 
 
+def gate_record_with_jev(
+    record: dict[str, Any],
+    config: dict[str, Any],
+    *,
+    api_key: str,
+    model: str = DEFAULT_MODEL,
+    min_relevance: float = 0.35,
+    opener=None,
+) -> dict[str, Any]:
+    """Stage 1 fast gate (~80ms): filter irrelevant, excluded, or ambiguous-identity records before rubric scoring."""
+    state = {
+        "sales_profile": {
+            "product": config.get("product", ""),
+            "target_customer_icp": config.get("customer", ""),
+            "exclude_keywords": config.get("exclude_keywords", ""),
+        },
+        "observed_signal": {
+            "company": record.get("company") or record.get("company_candidate") or "미확인",
+            "title": record.get("title"),
+            "description": (record.get("description") or "")[:600],
+            "location": record.get("location"),
+        },
+    }
+    questions = {
+        "is_relevant": {
+            "type": "noul",
+            "instructions": "Is this company and signal relevant to the sales_profile product and target_customer_icp?",
+        },
+        "is_excluded": {
+            "type": "noul",
+            "instructions": "Does this record match exclude_keywords or clearly belong to a non-target category (e.g., intern, part-time, unrelated)?",
+        },
+        "identity_clear": {
+            "type": "noul",
+            "instructions": "Is the target organization clearly identifiable (not anonymous, ambiguous, or a generic recruiting agency)?",
+        },
+    }
+    resp = system_one(state, questions, api_key=api_key, model=model, opener=opener)
+    ans = resp["answers"]
+    rel = float((ans.get("is_relevant") or {}).get("noul", 0.5))
+    excl = float((ans.get("is_excluded") or {}).get("noul", 0.0))
+    ident = float((ans.get("identity_clear") or {}).get("noul", 1.0))
+    passed = (rel >= min_relevance) and (excl < 0.65)
+    reason = ""
+    if excl >= 0.65:
+        reason = f"제외 조건 해당({int(excl * 100)}%)"
+    elif rel < min_relevance:
+        reason = f"관련성 기준 미달({int(rel * 100)}% < {int(min_relevance * 100)}%)"
+    return {
+        "model": resp.get("model", model),
+        "passed": passed,
+        "relevance_prob": round(rel, 3),
+        "excluded_prob": round(excl, 3),
+        "identity_clear_prob": round(ident, 3),
+        "reason": reason,
+        "usage": resp.get("usage") or {},
+    }
+
+
+def score_record_multistage_with_jev(
+    record: dict[str, Any],
+    config: dict[str, Any],
+    *,
+    api_key: str,
+    model: str = DEFAULT_MODEL,
+    min_relevance: float = 0.35,
+    local_fit: float | int | None = None,
+    local_urgency: float | int | None = None,
+    opener=None,
+) -> dict[str, Any]:
+    """Two-stage Jev scoring: Stage 1 fast relevance/exclusion gate -> Stage 2 rubric scoring + disagreement guard."""
+    gate = gate_record_with_jev(
+        record, config, api_key=api_key, model=model, min_relevance=min_relevance, opener=opener
+    )
+    if not gate["passed"]:
+        return {
+            "model": gate["model"],
+            "stages_run": 1,
+            "stage_stopped": "gate",
+            "gate": gate,
+            "relevance_prob": gate["relevance_prob"],
+            "fit_score": 0,
+            "fit_confidence": 0.9,
+            "urgency_score": 0,
+            "urgency_confidence": 0.9,
+            "action": "보류",
+            "action_confidence": 0.9,
+            "needs_research_prob": 0.0,
+            "needs_human_check": False,
+            "disagreement_note": gate["reason"],
+            "usage": gate.get("usage") or {},
+        }
+
+    scored = score_record_with_jev(record, config, api_key=api_key, model=model, opener=opener)
+    disagreement_notes: list[str] = []
+    needs_human_check = False
+
+    if local_fit is not None and abs(float(local_fit) - float(scored["fit_score"])) >= 35:
+        needs_human_check = True
+        disagreement_notes.append(f"로컬({int(local_fit)}) vs Jev({scored['fit_score']}) 적합도 편차 큼")
+    if local_urgency is not None and abs(float(local_urgency) - float(scored["urgency_score"])) >= 35:
+        needs_human_check = True
+        disagreement_notes.append(f"로컬({int(local_urgency)}) vs Jev({scored['urgency_score']}) 긴급도 편차 큼")
+    if gate["identity_clear_prob"] < 0.5:
+        needs_human_check = True
+        disagreement_notes.append(f"회사 식별 불명확({int(gate['identity_clear_prob'] * 100)}%)")
+        if scored["action"] == "지금 콜":
+            scored["action"] = "리서치 필요"
+    if scored["action"] == "지금 콜" and scored["action_confidence"] < 0.6:
+        needs_human_check = True
+        disagreement_notes.append(f"판정 신뢰도 낮음({int(scored['action_confidence'] * 100)}%)")
+        scored["action"] = "리서치 필요"
+
+    scored["stages_run"] = 2
+    scored["stage_stopped"] = "rubric"
+    scored["gate"] = gate
+    scored["needs_human_check"] = needs_human_check
+    scored["disagreement_note"] = "; ".join(disagreement_notes)
+    return scored
+
+
 def classify_brochure_with_jev(
     text: str,
     presets: list[dict[str, Any]],
@@ -360,9 +481,15 @@ def qa_draft_with_jev(
     *,
     api_key: str,
     model: str = DEFAULT_MODEL,
+    deep_verify_borderline: bool = True,
     opener=None,
 ) -> dict[str, Any]:
-    """Fast (~100ms) guardrail QA on a generated outreach draft before human review."""
+    """Fast (~100ms) multi-facet guardrail QA on a generated outreach draft before human review.
+
+    Checks hallucination, evidence-to-hook alignment, Korean causal flow, pushiness,
+    honorific subject errors, and single CTA. Runs an extra focused verification pass
+    ONLY when hallucination or evidence alignment is borderline (0.35..0.65).
+    """
     state = {
         "evidence": {
             "company": record.get("company") or "미확인",
@@ -377,9 +504,21 @@ def qa_draft_with_jev(
             "type": "noul",
             "instructions": "Does the draft invent specific metrics, customer names, budget claims, or contact names not present in the evidence?",
         },
+        "evidence_alignment": {
+            "type": "noul",
+            "instructions": "Does the draft's opening signal and personalization question logically match the provided evidence without jumping to unsupported conclusions?",
+        },
+        "causal_flow_natural": {
+            "type": "noul",
+            "instructions": "Do consecutive sentences connect smoothly in Korean (trigger -> question -> benefit -> CTA) without awkward repetition or abrupt leaps?",
+        },
         "pushy_or_exaggerated": {
             "type": "noul",
-            "instructions": "Does the draft sound pushy, spammy, or state unverified assumptions as certainty?",
+            "instructions": "Does the draft sound pushy, spammy, lecturing, or state unverified assumptions as certainty?",
+        },
+        "honorific_or_tone_error": {
+            "type": "noul",
+            "instructions": "Are there Korean honorific subject mistakes (e.g., using humble '드릴' for the recipient's action) or rude question endings like '않나요?'?",
         },
         "has_clear_single_cta": {
             "type": "noul",
@@ -389,21 +528,57 @@ def qa_draft_with_jev(
     resp = system_one(state, questions, api_key=api_key, model=model, opener=opener)
     ans = resp["answers"]
     halluc = float((ans.get("hallucination_risk") or {}).get("noul", 0.0))
+    align = float((ans.get("evidence_alignment") or {}).get("noul", 1.0))
+    flow = float((ans.get("causal_flow_natural") or {}).get("noul", 1.0))
     pushy = float((ans.get("pushy_or_exaggerated") or {}).get("noul", 0.0))
+    honorific_err = float((ans.get("honorific_or_tone_error") or {}).get("noul", 0.0))
     cta_ok = float((ans.get("has_clear_single_cta") or {}).get("noul", 1.0))
+
+    stages_run = 1
+    borderline_verified = False
+    has_align_key = "evidence_alignment" in ans
+    if deep_verify_borderline and has_align_key and ((0.35 <= halluc < 0.65) or (0.35 <= align < 0.65)):
+        stages_run = 2
+        borderline_verified = True
+        v_questions = {
+            "unverified_claim_present": {
+                "type": "noul",
+                "instructions": "Comparing draft line-by-line against evidence, is there ANY factual claim about the recipient company not explicitly supported by evidence?",
+            },
+            "trigger_matches_signal": {
+                "type": "noul",
+                "instructions": "Does the draft's contact reason accurately quote or paraphrase evidence.title without distortion?",
+            },
+        }
+        v_resp = system_one(state, v_questions, api_key=api_key, model=model, opener=opener)
+        v_ans = v_resp["answers"]
+        halluc = max(halluc, float((v_ans.get("unverified_claim_present") or {}).get("noul", halluc)))
+        align = min(align, float((v_ans.get("trigger_matches_signal") or {}).get("noul", align)))
+
     flags = []
     if halluc >= 0.5:
         flags.append(f"근거 외 주장 위험({int(halluc * 100)}%)")
+    if align < 0.5:
+        flags.append(f"근거-개인화 정합성 부족({int(align * 100)}%)")
+    if flow < 0.5:
+        flags.append(f"문장 인과·흐름 부자연스러움({int(flow * 100)}%)")
     if pushy >= 0.5:
         flags.append(f"과장/압박 표현 위험({int(pushy * 100)}%)")
+    if honorific_err >= 0.5:
+        flags.append(f"높임 주어·어조 오류 위험({int(honorific_err * 100)}%)")
     if cta_ok < 0.5:
         flags.append(f"명확한 단일 CTA 부족({int(cta_ok * 100)}%)")
     return {
         "model": resp.get("model", model),
+        "stages_run": stages_run,
+        "borderline_verified": borderline_verified,
         "passed": not flags,
         "flags": flags,
         "hallucination_risk": round(halluc, 3),
+        "evidence_alignment": round(align, 3),
+        "causal_flow_natural": round(flow, 3),
         "pushy_risk": round(pushy, 3),
+        "honorific_error_risk": round(honorific_err, 3),
         "cta_clarity": round(cta_ok, 3),
     }
 

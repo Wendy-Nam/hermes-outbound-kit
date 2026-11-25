@@ -192,9 +192,15 @@ def write_draft(vault: Path, company: str, action: str, draft: str, evidence: di
         print(f"⚠️  사람이 만든 같은 이름 노트가 있어 건너뜁니다: {path}")
         return None
     body = [f"# 초안 — {company}", "",
-            "> 규칙 기반 초안입니다. 근거를 열어 확인하고 사람이 직접 발송합니다. 자동 발송되지 않습니다.", "",
-            draft, "", "## 근거"]
-    body += [f"- {k}: {v}" for k, v in (evidence or {}).items()] or ["- (근거 URL 없음)"]
+            "> 규칙 기반 초안입니다. 아래 원문 링크를 열어 교차검증한 뒤 사람이 직접 발송합니다. 자동 발송되지 않습니다.", "",
+            draft, "", "## 근거 교차검증 링크"]
+    ev_lines = []
+    for k, v in (evidence or {}).items():
+        if isinstance(v, str) and v.startswith(("http://", "https://")):
+            ev_lines.append(f"- {k}: [원문 열기]({v}) (`{v}`)")
+        else:
+            ev_lines.append(f"- {k}: {v}")
+    body += ev_lines or ["- (근거 URL 없음)"]
     body += ["", f"계정: [[GTM/Accounts/{slug(company)}]]", "", "## 사람 메모"]
     write_note(path, {"company": company, "action": action, "review": meta.get("review", "pending"),
                       "updated": date.today().isoformat(), "tags": ["gtm-draft"]}, "\n".join(body), notes)
