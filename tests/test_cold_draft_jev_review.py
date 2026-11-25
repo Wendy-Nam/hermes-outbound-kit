@@ -264,15 +264,21 @@ class TestColdDraftJevAndReview(unittest.TestCase):
     def test_copy_guard_korean_honorific_flow_and_no_jeohui(self):
         bad_draft = (
             "안녕하세요. 샘플기업 담당자님,\n"
-            "공고를 보니 인력이 부족한 것 같았습니다 — 혹시 바쁘지 않나요?\n"
-            "통화 중 부재 전화는 순서대로 다시 연락드릴 수 있습니다."
+            "귀 기관의 공고를 보니 인력이 부족한 것 같았습니다 — 혹시 바쁘지 않나요?\n"
+            "통화 중 부재 전화는 순서대로 다시 연락드릴 수 있습니다. 15분 미팅 가능하실지요?"
         )
         res = copy_guard.lint_copy(bad_draft, subject="확인 요청", language="ko")
         self.assertFalse(res["passed"])
         joined = " ".join(res["issues"] + res["warnings"])
         self.assertIn("높임 주어 오류", joined)
         self.assertIn("부자연스러운 질문/훈수", joined)
+        self.assertIn("귀 기관", joined)
+        self.assertIn("가능하실지요?", joined)
         self.assertIn("em-dash", joined)
+        self.assertTrue((ROOT / "AGENTS.md").is_file())
+        preset_text = (ROOT / "pack/presets/freelance-ai-instructor.json").read_text(encoding="utf-8")
+        self.assertIn("RISE", preset_text)
+        self.assertNotIn("LINC 3.0", preset_text)
 
         # Intentional user voice commas must pass cleanly
         good_draft = (
