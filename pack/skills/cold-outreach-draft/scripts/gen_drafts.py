@@ -72,8 +72,8 @@ def _apply_fixes(text: str, fixes: list[list[str]]) -> str:
     return text
 
 
-def _build_dm(lead: str, dm_intro: str, trig: str, q: str, q_short: str, benefit: str, cta: str, fixes: list[list[str]]) -> str:
-    head = f"안녕하세요, {lead} 담당자님. {dm_intro}".strip()
+def _build_dm(greeting_target: str, dm_intro: str, trig: str, q: str, q_short: str, benefit: str, cta: str, fixes: list[list[str]]) -> str:
+    head = f"안녕하세요, {greeting_target}. {dm_intro}".strip()
     cands = [
         [head, trig, q, benefit, cta],
         [head, trig, q_short, benefit, cta],
@@ -185,8 +185,10 @@ def generate_drafts(
         dm_intro_tpl = (P.get("dm_intro") or "").strip()
         dm_intro = dm_intro_tpl.replace("{sender}", P["sender"]).replace("{company}", P["company"]).replace("{owner}", owner) if dm_intro_tpl else intro
 
+        cname = (r.get("contact_name") or "").strip()
+        greeting_target = (cname if cname.endswith("님") else f"{cname}님") if cname else f"{lead} 담당자님"
         body = _apply_fixes(
-            f"안녕하세요. {lead} 담당자님,\n{intro}\n\n"
+            f"안녕하세요. {greeting_target},\n{intro}\n\n"
             + f"{trig}\n{q}".replace(". ", ".\n")
             + "\n\n" + " ".join(ben).replace(". ", ".\n")
             + "\n\n" + cta.replace(". ", ".\n")
@@ -196,7 +198,7 @@ def generate_drafts(
         subject = P["subject"].format(company=P["company"], lead=lead, product=ang.get("product") or P["product"], date=date_val)
         core_ben = ang.get("dm_benefit") or (ben[1] if (len(ben) > 1 and def_sentence and ben[0] == def_sentence) else ben[0])
         cta_short = (ang.get("dm_cta") or P.get("dm_cta") or cta.split(". ")[0].rstrip(".") + ".").replace("{lead}", lead)
-        dm = _build_dm(lead, dm_intro, trig, q, q_short, core_ben, cta_short, fixes)
+        dm = _build_dm(greeting_target, dm_intro, trig, q, q_short, core_ben, cta_short, fixes)
 
         chk = body
         for n in (lead, r.get("lead", ""), detail, raw_detail):
