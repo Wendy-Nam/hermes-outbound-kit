@@ -68,6 +68,10 @@ KO_TONE_OR_LECTURING_PHRASES: tuple[str, ...] = (
     "것 같았습니다",
     "기 쉽습니다",
     "모습을 보여드리",
+    "귀 기관",
+    "귀사",
+    "당사",
+    "가능하실지요?",
 )
 
 KO_HONORIFIC_ERROR_PATTERNS: tuple[tuple[str, str], ...] = (
