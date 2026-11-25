@@ -67,10 +67,13 @@
     "free_xray_queries": {
       "label": "무료 Google X-Ray 즉시 소싱 쿼리 (복사해 검색 → URL을 리드 CSV에 추가)",
       "queries": {
+        "linkedin_hrd_ld": "site:linkedin.com/in (\"HRD\" OR \"L&D\" OR \"교육담당\" OR \"인재개발\" OR \"People\") (\"팀장\" OR \"매니저\" OR \"리드\" OR \"Head\") (\"서울\" OR \"판교\" OR \"Korea\")",
+        "linkedin_ax_exec": "site:linkedin.com/in (\"AX\" OR \"DX\" OR \"디지털 전환\" OR \"COO\" OR \"대표이사\" OR \"사업본부장\") (\"AI\" OR \"자동화\" OR \"생산성\") (\"서울\" OR \"판교\" OR \"Korea\")",
+        "linkedin_edu_agency_pm": "site:linkedin.com/in (\"기업교육\" OR \"B2B 교육\" OR \"교육기획\" OR \"커리큘럼\" OR \"러닝\") (\"패스트캠퍼스\" OR \"멀티캠퍼스\" OR \"휴넷\" OR \"엘리스\" OR \"팀스파르타\" OR \"코드잇\")",
+        "linkedin_demand_posts": "site:linkedin.com/posts (\"생성형 AI\" OR \"AI 교육\" OR \"AI 워크숍\" OR \"사내 교육\") (\"강사\" OR \"출강\" OR \"추천\" OR \"후기\")",
         "university_lectures": "site:ac.kr (\"생성형 AI\" OR \"AI 실무\" OR \"ChatGPT\") (\"강사 모집\" OR \"특강\" OR \"워크숍\" OR \"역량강화\")",
         "technopark_and_ccei": "(site:or.kr OR site:re.kr) (\"테크노파크\" OR \"창조경제혁신센터\" OR \"경제진흥원\") (\"생성형 AI\" OR \"AX\") (\"교육\" OR \"강사\" OR \"컨설팅\")",
-        "seminar_organizers": "(site:event-us.kr OR site:onoffmix.com) (\"생성형 AI\" OR \"AX\" OR \"업무 자동화\") (\"기업\" OR \"실무자\" OR \"HRD\")",
-        "b2b_hrd_linkedin": "site:linkedin.com/in (\"HRD\" OR \"L&D\" OR \"교육담당\" OR \"AX\" OR \"People\") (\"팀장\" OR \"매니저\" OR \"리드\" OR \"Head\") (\"서울\" OR \"판교\" OR \"Korea\")"
+        "seminar_organizers": "(site:event-us.kr OR site:onoffmix.com) (\"생성형 AI\" OR \"AX\" OR \"업무 자동화\") (\"기업\" OR \"실무자\" OR \"HRD\")"
       }
     }
   },
