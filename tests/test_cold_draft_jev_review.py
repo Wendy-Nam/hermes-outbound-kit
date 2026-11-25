@@ -128,10 +128,17 @@ class _MultiStageMockJev:
 class TestColdDraftJevAndReview(unittest.TestCase):
     def test_freelance_instructor_preset_and_profile_end_to_end(self):
         preset = profile_presets.get_preset("freelance-ai-instructor")
-        self.assertIn("recommended_channels", preset)
-        self.assertIn("direct_corporate_outreach", preset["recommended_channels"])
-        self.assertIn("instructor_and_b2b_platforms", preset["recommended_channels"])
-        self.assertIn("public_and_university", preset["recommended_channels"])
+        rc = preset["recommended_channels"]
+        for key in (
+            "direct_corporate_outreach",
+            "b2b_education_agencies",
+            "seminars_and_communities",
+            "public_and_startup_support",
+            "university_and_academia",
+            "consulting_and_advisory",
+            "free_xray_queries",
+        ):
+            self.assertIn(key, rc)
 
         cfg = kit.validate(profile_presets.apply_preset_to_config("freelance-ai-instructor"))
         self.assertEqual(cfg["sales_preset"], "freelance-ai-instructor")
