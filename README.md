@@ -15,7 +15,7 @@
 
 ### 방법 A. 브라우저 화면으로 클릭해서 시작 (비개발자 권장)
 1. 이 폴더의 [`wizard.html`](wizard.html)을 브라우저(크롬·사파리 등)로 엽니다.
-2. 내 영업 직군 카드(10종 중 선택)를 누르거나, **우리 회사 소개글 / 내가 평소 보낸 영업 메일**을 붙여넣어 자동 세팅합니다.
+2. 내 영업 직군 카드(11종 중 선택)를 누르거나, **우리 회사 소개글 / 내가 평소 보낸 영업 메일**을 붙여넣어 자동 세팅합니다.
 3. 맨 아래 **`setup.json 생성 및 다운로드`**를 눌러 이 폴더에 저장합니다.
 4. 터미널에서 아래 한 줄로 바로 샘플 결과를 만들어 봅니다 (API 키·계정 없이 오프라인 실행 가능):
    ```sh
@@ -41,17 +41,18 @@ Mac에서는 `시작하기.command`, Windows에서는 `시작하기.bat`을 더�
 
 | 내가 하고 싶은 일 | 명령어 | 설명 |
 |---|---|---|
-| **내 영업 직군에 맞게 세팅** | `wizard.html`, `outbound.py profile` | 10개 업종 프리셋(SaaS·HR·제조·커머스·물류·보안·핀테크·공공·해외 B2B 엔드유저·해외 대리점) |
+| **내 영업 직군에 맞게 세팅** | `wizard.html`, `outbound.py profile` | 11개 업종 프리셋(SaaS·HR·제조·커머스·물류·보안·핀테크·공공·해외 B2B 엔드유저·해외 대리점·**프리랜서 AI 강사/컨설턴트**) |
 | **브로셔·홈페이지로 자동 세팅** | `outbound.py profile bootstrap` | 자사 브로셔(`.pptx/.docx/.pdf/.md/.png/.jpg`) + 자사/경쟁사 URL(JS 렌더링 지원) 분석 → 초기 타깃팅 전략·DNC 자동 생성 |
 | **내 메일 말투 학습** | `outbound.py profile style` | 내 발신메일함(`.mbox/.eml`/읽기 전용 IMAP)에서 인사말·분량·화법만 익명 추출(개인정보 미저장) |
 | **국내 공고·투자·입찰·공공데이터** | `outbound.py run`, `outbound.py g2b`, `outbound.py lens` | 원티드·사람인·잡코리아(이미지 OCR)·점핏·ATS·Platum/VentureSquare + **나라장터 3단계 차분 감시** + **공공데이터 렌즈(9.6만 데이터셋·활용계획 무료無인증 탐색)** |
 | **LinkedIn 담당자 소싱·CRM** | `outbound.py linkedin`, `outbound.py crm` | ICP → Apify/CSV 소싱 → **초안/연락이력 분리** · **Obsidian Kanban 보드(`CRM Board.md`) 자동 동기화** · **무결성 감사(`vault audit`)** |
 | **해외 B2B 엔드유저 / 대리점 개척** | `outbound.py overseas` | 해외 최종 도입 기업(`--mode end_user`) & 현지 대리점(`--mode distributor`) 발굴·4축 채점 + 영/일/독/한 네이티브 초안 |
 | **경쟁사 역추적 · 데일리 브리핑** | `outbound.py intel`, `outbound.py briefing` | 경쟁사 사례에서 돈 쓴 문제 역추적 → 비슷한 타깃 큐 + **오늘 현황·미발송 초안·G2B·감사 데일리 브리핑** |
-| **멀티터치 시퀀스 & 쉬운 문체 검수** | `outbound.py copy` | 1~4차 시퀀스 생성 + 콜드메일 스팸어 린트 + **영업 전략문서 쉬운 한국어 문체·표 열 감사(`--mode doc`)** |
+| **범용 일괄 초안 & 근거 교차검증 패널** | `outbound.py draft`, `outbound.py review` | 프로필 JSON + 리드 CSV 일괄 콜드메일·DM 생성(`cold-outreach-draft`) + 공개 연락 창구 수집 + **원문 링크 나란히 교차검증 HTML 패널** |
+| **멀티터치 시퀀스 & 쉬운 문체 검수** | `outbound.py copy` | 1~4차 시퀀스 생성 + 콜드메일 스팸어·높임 주어·문장 흐름 린트 + **영업 전략문서 쉬운 한국어 문체·표 열 감사(`--mode doc`)** |
 | **답장 분류 & 수신거부 자동 차단** | `outbound.py replies` | 답장 11종 분류, 긍정 회신율 계산, 수신거부/바운스 자동 DNC 등록, `LEARNINGS.md` 누적 |
 | **미팅 브리핑 · Plaud 녹음 전사 · 도메인** | `outbound.py meeting`, `outbound.py transcribe`, `outbound.py health` | 미팅 전 1장 브리핑, **Plaud/음성 녹음 무료 Groq Whisper 전사 → 미팅 후 리캡**, 도메인 `MX/SPF/DKIM/DMARC` 점검 |
-| **API 키 관리 & 무료 도구 진단** | `outbound.py env`, `outbound.py services`, `outbound.py jev` | 숨김 입력 `.env` 안전 저장 + 무료 Crawl4AI/Playwright/tesseract 상태 진단 |
+| **API 키 관리 & 다단계 Jev 진단** | `outbound.py env`, `outbound.py services`, `outbound.py jev` | 숨김 입력 `.env` 안전 저장 + 무료 Crawl4AI/Playwright/tesseract 상태 진단 + 다단계 Jev 게이트·QA |
 
 ---
 
@@ -115,10 +116,10 @@ hermes-outbound-kit/
 ├── 시작하기.command / .bat  # Mac / Windows 더블클릭 실행기
 ├── src/
 │   ├── core/               # 설정·수집기·Crawl4AI/OCR(web_extract)·G2B감시·CRM보드/감사·볼트·워크플로
-│   ├── profile/            # 10종 프리셋·브로셔/웹 분석·발신함 문체 분석
-│   ├── pipelines/          # LinkedIn·해외 B2B/대리점·경쟁사 인텔·Plaud/Groq 전사·브리핑·카피·답장·미팅·Jev
+│   ├── profile/            # 11종 프리셋·브로셔/웹 분석·발신함 문체 분석
+│   ├── pipelines/          # LinkedIn·해외 B2B/대리점·경쟁사 인텔·Plaud/Groq 전사·브리핑·카피·교차검증 패널·답장·미팅·Jev
 │   └── setup/              # 설치기·.env 도우미·Hermes 엔진·예약 실행(--verify)·원격 SSH 배포
-├── pack/                   # 25개 Hermes 영업 스킬 & 10종 직군 프리셋 JSON
+├── pack/                   # 26개 Hermes 영업 스킬 & 11종 직군 프리셋 JSON
 ├── scripts/                # 배포 번들 생성 · 오프라인 스모크 · 개인정보 감사
 ├── docs/                   # 사용자 한국어 가이드 (내부 참고·감사 문서는 docs/reference/)
 ├── samples/                # 오프라인 테스트용 샘플 데이터
@@ -150,6 +151,6 @@ hermes-outbound-kit/
 
 - **[실전 사용 매뉴얼 (처음 쓰는 분 필독)](docs/MANUAL.md)**
 - [사전 준비 체크리스트](docs/PREPARE.md) · [Obsidian 볼트 구조](docs/OBSIDIAN.md)
-- [포함된 25개 영업 스킬 목록](docs/SKILLS.md) · [시나리오별 실행 상세](docs/WORKFLOWS.md)
+- [포함된 26개 영업 스킬 목록](docs/SKILLS.md) · [시나리오별 실행 상세](docs/WORKFLOWS.md)
 - [서버 설치 안내](docs/SERVER.md) · [선택 서비스 연결](docs/SERVICES.md)
 - 내부 검증·감사 참고 문서: [공개 전 개인정보 점검](docs/reference/PRIVACY-RELEASE.md) · [검증 범위 안내](docs/reference/VALIDATION.md)

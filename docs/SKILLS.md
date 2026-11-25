@@ -8,7 +8,7 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 
 | 단계 | 스킬 | 스크립트 | 비고 |
 |---|---|---|---|
-| 프로필 커스텀 | `profile-customizer` | `outbound.py profile`, `outbound.py env` | 직군 프리셋(10종), 브로셔/홈페이지 분석(Crawl4AI/OCR), 개인 발신메일함 문체 분석, DNC/ATS 관리 |
+| 프로필 커스텀 | `profile-customizer` | `outbound.py profile`, `outbound.py env` | 직군 프리셋(11종, 프리랜서 AI 강사/컨설턴트 포함), 브로셔/홈페이지 분석(Crawl4AI/OCR), 개인 발신메일함 문체 분석, DNC/ATS 관리 |
 | 타깃 정의 | `gtm-icp-brief` | — | ICP 필수·가점·제외 조건, 무형 서비스 엔드유저 vs 구매 의사결정자 분리 |
 | 계정 발굴 | `lead-prospecting` | `lead_scorer.py` | 도입사례 → 경쟁사·생태계 확장 → BANT → 제안 개요 |
 | 계정 발굴 | `funding-signal-search` | `funding_search.py` | Platum·VentureSquare 투자 기사(공개 WordPress API) |
@@ -18,9 +18,9 @@ Python 표준 라이브러리만 쓰므로 추가 설치가 필요 없습니다.
 | 뉴스·공개 신호 | `naver-news-search` | — | 제3자 k-skill 공개 프록시 경유(아래 참고) |
 | 뉴스·공개 신호 | `news-monitoring-briefing`, `buying-signals`, `korean-public-research`, `overseas-partner-research` | `outbound.py g2b`, `outbound.py intel`, `outbound.py briefing`, `outbound.py overseas` | 나라장터 3단계 차분 감시, 경쟁사 역추적(RSS/웹), 데일리 브리핑, 해외 엔드유저/대리점 |
 | 리서치 | `prospect-research`, `web-reader` | — | 사람·회사 공개 정보, 본문 추출(Jina Reader) |
-| 우선순위 | `outbound-scoring` | `account_score.py`, `signals_to_accounts.py` | 적합도×긴급도(투자·채용·임원 발언·행사·경쟁사), 선택 TypeSafe AI Jev 고속 보정 |
-| 초안 | `evidence-to-outreach`, `signal-outreach-draft`, `linkedin-cold-messaging` | `signal_outreach.py`, `outbound.py linkedin` | 담백한 3~4줄 실무 초안 + 초안/연락이력 분리, 사람 검토 후 직접 발송 |
-| 문체 | `korean-humanizer` | — | 번역체·AI 상투어 교정 |
+| 우선순위 | `outbound-scoring` | `account_score.py`, `signals_to_accounts.py` | 적합도×긴급도(투자·채용·임원 발언·행사·경쟁사), 선택 TypeSafe AI Jev 다단계 게이트·편차 가드 |
+| 초안 | `evidence-to-outreach`, `signal-outreach-draft`, `cold-outreach-draft`, `linkedin-cold-messaging` | `signal_outreach.py`, `outbound.py draft`, `outbound.py review`, `outbound.py linkedin` | 담백한 3~4줄 실무 초안, CSV 일괄 초안·공개 연락 창구 수집, 근거 교차검증 HTML 패널, 사람 검토 후 직접 발송 |
+| 문체 | `korean-humanizer` | — | 번역체·AI 상투어 교정 + 아웃바운드·사용자 말투 보존 및 문장 인과/흐름 점검 |
 | 검수 | `gtm-list-qa`, `gtm-copy-qa` | `outbound.py copy` | 콜드메일 스팸어 린트 + 영업 전략 문서 쉬운 한국어 문체·표 열 감사(`--mode doc`) |
 | 추적 | `account-crm` | `account_crm.py`, `outbound.py crm`, `outbound.py transcribe` | 파이프라인·Obsidian Kanban 동기화·볼트 감사·Plaud/Groq 미팅 녹음 전사 |
 

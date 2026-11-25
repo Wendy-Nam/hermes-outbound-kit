@@ -663,6 +663,20 @@ def run_flow(vault: str | Path, input_path: str | Path | None = None, *,
 
 > 검토 전 확인: 회사 동일성, 원문 최신성, 가설이 실제 상황과 맞는지, 실제 수신 대상, 과장 표현 여부."""
             draft_hash = hashlib.sha256(draft_body.encode("utf-8")).hexdigest()
+            excerpt_short = (record.get("description") or "").strip().replace("\n", " ")[:240]
+            qa_info = score.get("draft_qa") if isinstance(score.get("draft_qa"), dict) else {}
+            qa_flags_line = (
+                f"\n- **QA/Jev 점검 주의**: {', '.join(qa_info.get('flags') or [])}"
+                if qa_info and not qa_info.get("passed", True)
+                else ""
+            )
+            jev_info = score.get("jev") if isinstance(score.get("jev"), dict) else {}
+            disagree_line = (
+                f"\n- **채점 교차검증 주의**: {jev_info['disagreement_note']}"
+                if jev_info.get("disagreement_note")
+                else ""
+            )
+            excerpt_line = f"\n- **원문 발췌**: {excerpt_short}" if excerpt_short else ""
             _machine_note(draft_path, f"""# Draft template — {record['company']}
 
 - account_id: `{account_id}`
@@ -670,6 +684,14 @@ def run_flow(vault: str | Path, input_path: str | Path | None = None, *,
 - draft_content_hash: `{draft_hash}`
 - 전체 근거: {', '.join(f'[[Evidence/{item}]]' for item in evidence_ids)}
 - 검토: [[Review/{account_id}]]
+
+## 근거 교차검증 요약 (발송 전 원문 확인)
+
+- **원문 링크**: [원문 바로 열기]({ev['url']}) (`{ev['source']}`)
+- **관측 신호**: `{record['record_type']}` · {record['title']}
+- **게시/수집 시각**: 게시 `{record['published_at'] or '미확인'}` · 수집 `{ev['retrieved_at'] or '미확인'}`{excerpt_line}{qa_flags_line}{disagree_line}
+
+## 초안 본문
 
 {draft_body}
 """)

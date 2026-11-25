@@ -359,23 +359,36 @@ def score_records(
         jev_result: dict[str, Any] | None = None
         if jev_mod and jev_key:
             try:
-                jev_result = jev_mod.score_record_with_jev(
-                    record, config, api_key=jev_key, model=jev_model, opener=jev_opener,
+                jev_min_rel = float(config.get("jev_min_relevance", 0.35))
+                jev_result = jev_mod.score_record_multistage_with_jev(
+                    record,
+                    config,
+                    api_key=jev_key,
+                    model=jev_model,
+                    min_relevance=jev_min_rel,
+                    local_fit=fit_score,
+                    local_urgency=urgency_score,
+                    opener=jev_opener,
                 )
-                # Blend calibrated Jev judgment when local regex axes lack coverage or to refine routing
-                if fit_score is None or jev_result["fit_confidence"] >= 0.65:
-                    fit_score = jev_result["fit_score"]
-                if urgency_score is None or jev_result["urgency_confidence"] >= 0.65:
-                    urgency_score = jev_result["urgency_score"]
-                if jev_result["action_confidence"] >= 0.6 or action == "리서치 필요":
-                    action = jev_result["action"]
+                if jev_result.get("stage_stopped") == "gate":
+                    fit_score = 0
+                    urgency_score = 0
+                    action = "보류"
+                else:
+                    # Blend calibrated Jev judgment when local regex axes lack coverage or to refine routing
+                    if fit_score is None or jev_result["fit_confidence"] >= 0.65:
+                        fit_score = jev_result["fit_score"]
+                    if urgency_score is None or jev_result["urgency_confidence"] >= 0.65:
+                        urgency_score = jev_result["urgency_score"]
+                    if jev_result["action_confidence"] >= 0.6 or action == "리서치 필요":
+                        action = jev_result["action"]
             except Exception as exc:
                 jev_result = {"error": str(exc)}
 
         fit_label = "supported" if (
             matched
             or (isinstance(fit_score, (int, float)) and fit_score >= 45)
-            or (isinstance(jev_result, dict) and float(jev_result.get("relevance_prob") or 0) >= 0.65)
+            or (isinstance(jev_result, dict) and float(jev_result.get("relevance_prob") or 0) >= 0.65 and jev_result.get("stage_stopped") != "gate")
         ) else "unknown"
 
         rationale_parts = []
@@ -384,9 +397,11 @@ def score_records(
             u_txt = "미산출" if urgency_score is None else f"{urgency_score}점"
             rationale_parts.append(f"2축 채점 [{action}] 적합도 {f_txt} · 긴급도 {u_txt}")
         if isinstance(jev_result, dict) and "relevance_prob" in jev_result:
+            stage_tag = f"{jev_result.get('stages_run', 1)}단계"
+            note_suffix = f" · 주의: {jev_result['disagreement_note']}" if jev_result.get("disagreement_note") else ""
             rationale_parts.append(
-                f"Jev({jev_result.get('model')}) 관련성 {int(jev_result['relevance_prob']*100)}% · "
-                f"신뢰도 {int(jev_result.get('action_confidence', 0)*100)}%"
+                f"Jev({jev_result.get('model')}/{stage_tag}) 관련성 {int(jev_result['relevance_prob']*100)}% · "
+                f"신뢰도 {int(jev_result.get('action_confidence', 0)*100)}%{note_suffix}"
             )
         if matched:
             rationale_parts.append("프로필 용어 일치: " + ", ".join(matched[:8]))
@@ -658,7 +673,7 @@ def export_runs_csv(runs: list[dict], destination: str | Path) -> Path:
 def run(config_path: str, home: str, output: str, vault: str, *, scenario: str | None,
         source_mode: str | None, source_path: str | None, draft_mode: str | None,
         drafts_file: str | None, export_csv: str | None = None,
-        runner=subprocess.run) -> dict:
+        review_html: str | None = None, runner=subprocess.run) -> dict:
     config = load_config(config_path)
     home_path = Path(home).expanduser().absolute()
     source_mode = source_mode or config.get("source_mode")
@@ -788,6 +803,10 @@ def run(config_path: str, home: str, output: str, vault: str, *, scenario: str |
     }
     if export_csv:
         batch["exported_csv"] = str(export_runs_csv(results, export_csv))
+    if review_html:
+        import review_panel
+        panel = review_panel.build_review_panel(vault_dir=vault, output_html=review_html)
+        batch["review_panel"] = panel["panel"]
     return batch
 
 
@@ -805,6 +824,7 @@ def main(argv: list[str] | None = None) -> int:
     command.add_argument("--draft-mode", choices=("template", "hermes", "provided"))
     command.add_argument("--drafts-file")
     command.add_argument("--export-csv", help="formula-safe CSV export path")
+    command.add_argument("--review-html", help="근거 교차검증 단일 HTML 패널 출력 경로")
     draft_import = sub.add_parser("draft-import", help="validate a host-AI/person-provided draft JSON contract")
     draft_import.add_argument("--input", required=True)
     args = parser.parse_args(argv)
@@ -818,7 +838,7 @@ def main(argv: list[str] | None = None) -> int:
         result = run(args.config, args.home, args.output, args.vault, scenario=args.scenario,
                      source_mode=args.source_mode, source_path=args.source_path,
                      draft_mode=args.draft_mode, drafts_file=args.drafts_file,
-                     export_csv=args.export_csv)
+                     export_csv=args.export_csv, review_html=args.review_html)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except (ValueError, OSError, subprocess.SubprocessError) as exc:

@@ -63,8 +63,22 @@ KO_CLICHE_OR_SPAM_PHRASES: tuple[str, ...] = (
     "게임 체인저",
 )
 
+KO_TONE_OR_LECTURING_PHRASES: tuple[str, ...] = (
+    "않나요?",
+    "것 같았습니다",
+    "기 쉽습니다",
+    "모습을 보여드리",
+)
+
+KO_HONORIFIC_ERROR_PATTERNS: tuple[tuple[str, str], ...] = (
+    (r"다시\s*연락드릴\s*수\s*있습니다", "높임 주어 오류: 상대 행동에는 '다시 연락하실 수 있습니다'를 쓰세요."),
+    (r"연락드리느라", "높임 주어 오류: 상대 행동에는 '연락하시느라'를 쓰세요."),
+    (r"안내받으실\s*수\s*드리겠습니다", "높임 주어 오류: 문장 호응을 확인하세요."),
+    (r"확인해\s*드리실\s*수", "높임 주어 오류: 상대 행동에는 '확인하실 수'를 쓰세요."),
+)
+
 PLACEHOLDER_RX = re.compile(
-    r"(\{\{[^}]+\}\}|\[(?:이름|회사|이메일|제품[^\]]*|타깃[^\]]*|담당자|연락처|링크)\]|<(?:COMPANY|NAME|ROLE)>)"
+    r"(\{\{[^}]+\}\}|\[(?:이름|회사|이메일|제품[^\]]*|타깃[^\]]*|담당자|연락처|링크|회사명|기관명|사업명|확인 필요)\]|<(?:COMPANY|NAME|ROLE)>)"
 )
 URL_RX = re.compile(r"https?://\S+", re.I)
 
@@ -93,6 +107,22 @@ def _detect_language(text: str) -> str:
     return "en"
 
 
+def _find_consecutive_ko_repetition(text: str) -> list[str]:
+    """Detect awkward adjacent-sentence word repetition in Korean body lines."""
+    stopwords = {"입니다", "있습니다", "합니다", "하는", "있는", "되는", "관련", "안내", "부탁드립니다", "감사합니다", "연락드립니다"}
+    sents = [s.strip() for s in re.split(r"[\n.!?]+", text) if len(s.strip()) >= 12]
+    hits: list[str] = []
+    for a, b in zip(sents, sents[1:]):
+        ta = {t for t in re.findall(r"[가-힣]{2,}", a) if t not in stopwords}
+        tb = {t for t in re.findall(r"[가-힣]{2,}", b) if t not in stopwords}
+        if len(ta) < 3 or len(tb) < 3:
+            continue
+        overlap = len(ta & tb) / min(len(ta), len(tb))
+        if overlap >= 0.65:
+            hits.append(f"인접 문장 내용 반복({int(overlap * 100)}%): '{a[:24]}…' ↔ '{b[:24]}…'")
+    return hits
+
+
 def lint_copy(
     body: str,
     *,
@@ -101,12 +131,13 @@ def lint_copy(
     channel: str = "email",
     touch_number: int = 1,
     allow_phrases: list[str] | None = None,
+    preserve_user_voice: bool = True,
     use_jev: bool = False,
     record: dict[str, Any] | None = None,
     home: str | Path | None = None,
     opener=None,
 ) -> dict[str, Any]:
-    """Run GTMOS-style spam, cliche, readability, and placeholder checks on outbound copy."""
+    """Run GTMOS-style spam, cliche, readability, Korean honorific/flow, and placeholder checks on outbound copy."""
     sendable = _strip_memo_footer(body or "")
     subj = (subject or "").strip()
     if not subj and sendable.startswith(("제목:", "Subject:")):
@@ -135,6 +166,19 @@ def lint_copy(
             found_phrases.append(phrase)
     if found_phrases:
         issues.append(f"상투어·스팸/훈수 표현 감지: {', '.join(found_phrases[:5])}")
+
+    if lang == "ko":
+        tone_hits = [p for p in KO_TONE_OR_LECTURING_PHRASES if p.casefold() not in allowed and p.casefold() in full_check]
+        if tone_hits:
+            issues.append(f"부자연스러운 질문/훈수 표현 감지: {', '.join(tone_hits[:4])}")
+        for rx, msg in KO_HONORIFIC_ERROR_PATTERNS:
+            if re.search(rx, sendable):
+                issues.append(msg)
+        if "—" in sendable or "–" in sendable:
+            warnings.append("em-dash(—)/en-dash(–)가 포함되어 있습니다. 쉼표나 마침표로 바꾸는 편이 자연스럽습니다.")
+        rep_hits = _find_consecutive_ko_repetition(sendable)
+        if rep_hits:
+            warnings.extend(rep_hits[:2])
 
     if lang == "en":
         spam_words = [
@@ -194,6 +238,7 @@ def lint_copy(
         "score": score,
         "language": lang,
         "channel": channel,
+        "preserve_user_voice": preserve_user_voice,
         "issues": issues,
         "warnings": warnings,
         "metrics": {
@@ -319,7 +364,7 @@ def build_multitouch_sequence(
                 "body": (
                     f"{company} 담당자님, 안녕하세요. {s_comp} {s_name}입니다.\n\n"
                     f"「{title}」 보고 짧게 연락드립니다.\n"
-                    f"저희는 {product}를 만들고 있고, {val_ko}\n\n"
+                    f"{product} 관련해서 {val_ko}\n\n"
                     f"{cta_ko}\n\n"
                     f"{closing}\n{sign}\n\n"
                     f"---\n[발송 전 내 말로 바꿀 1줄 메모]\n- 본문 중 1줄만 상대 팀에서 실제로 본 사실로 바꿔서 보내세요."
