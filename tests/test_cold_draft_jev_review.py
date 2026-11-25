@@ -172,6 +172,19 @@ class TestColdDraftJevAndReview(unittest.TestCase):
             self.assertTrue(d["evidence_url"].startswith("https://"))
             self.assertIn("프리랜서 강사 김지안입니다.", d["body"])
 
+        # Regression checks: clean_detail strips '(주)회사명에서 ' cleanly & contact_name overrides greeting
+        self.assertEqual(
+            gen_mod.clean_detail("(주)화성컴퍼니에서 AI Agent 프로그램 전문 강사를 찾아요", "(주)화성컴퍼니"),
+            "AI Agent 프로그램 전문 강사를 찾아요",
+        )
+        named = gen_mod.generate_drafts(
+            profile_data,
+            [{**rows[0], "contact_name": "지연"}],
+            date_str="261125",
+        )
+        self.assertTrue(named[0]["body"].startswith("안녕하세요. 지연님,"))
+        self.assertTrue(named[0]["dm"].startswith("안녕하세요, 지연님."))
+
     def test_helpdesk_list_when_and_cli_html_panel(self):
         with tempfile.TemporaryDirectory() as tmp:
             out_prefix = Path(tmp) / "helpdesk-out"

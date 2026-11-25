@@ -52,11 +52,12 @@ def clean_name(s: str) -> str:
 
 
 def clean_detail(d: str, lead: str) -> str:
-    t = d or ""
-    for n in {lead, clean_name(lead)}:
+    t = re.sub(r"\(주\)|㈜|주식회사|\(유\)|유한회사|\(사\)|사단법인|\(재\)|재단법인", "", d or "")
+    for n in sorted({lead, clean_name(lead)}, key=len, reverse=True):
         if n and len(n) > 1:
             t = t.replace(n, "")
     t = re.sub(r"\[[^\]]*\]|【[^】]*】|<[^>]*>|[.!?]+|채용\s*공고|채용합니다|모집합니다|모십니다", " ", t)
+    t = re.sub(r"^\s*(?:에서|의|은|는|이|가)\s+", "", t)
     t = re.sub(r"\s+", " ", t).strip(" -–:|/·,")
     t = re.sub(r"\s*(채용|모집|구인)$", "", t)
     return re.sub(r"\s+(를|을|의)$", "", t).strip()
@@ -72,10 +73,9 @@ def _apply_fixes(text: str, fixes: list[list[str]]) -> str:
     return text
 
 
-def _build_dm(greeting_target: str, dm_intro: str, trig: str, q: str, q_short: str, benefit: str, cta: str, fixes: list[list[str]]) -> str:
+def _build_dm(greeting_target: str, dm_intro: str, trig: str, q_short: str, benefit: str, cta: str, fixes: list[list[str]]) -> str:
     head = f"안녕하세요, {greeting_target}. {dm_intro}".strip()
     cands = [
-        [head, trig, q, benefit, cta],
         [head, trig, q_short, benefit, cta],
         [head, q_short, benefit, cta],
         [head, trig, q_short, cta],
@@ -198,7 +198,7 @@ def generate_drafts(
         subject = P["subject"].format(company=P["company"], lead=lead, product=ang.get("product") or P["product"], date=date_val)
         core_ben = ang.get("dm_benefit") or (ben[1] if (len(ben) > 1 and def_sentence and ben[0] == def_sentence) else ben[0])
         cta_short = (ang.get("dm_cta") or P.get("dm_cta") or cta.split(". ")[0].rstrip(".") + ".").replace("{lead}", lead)
-        dm = _build_dm(greeting_target, dm_intro, trig, q, q_short, core_ben, cta_short, fixes)
+        dm = _build_dm(greeting_target, dm_intro, trig, q_short, core_ben, cta_short, fixes)
 
         chk = body
         for n in (lead, r.get("lead", ""), detail, raw_detail):
